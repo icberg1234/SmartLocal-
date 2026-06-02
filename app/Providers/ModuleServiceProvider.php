@@ -28,19 +28,31 @@ final class ModuleServiceProvider extends ServiceProvider
     {
         $this->app->singleton(CurrentMall::class);
 
+        // Providers resolve per-mall (base data in malls.settings), falling back
+        // to the platform-wide config. Resolved per request, after ResolveTenant.
         $this->app->bind(SmsSender::class, function (): SmsSender {
-            if (config('services.sms.driver') === 'kavenegar') {
-                return new KavenegarSmsSender((string) config('services.sms.kavenegar_key', ''));
+            /** @var CurrentMall $mall */
+            $mall = app(CurrentMall::class);
+            $driver = (string) $mall->setting('sms.driver', config('services.sms.driver'));
+
+            if ($driver === 'kavenegar') {
+                return new KavenegarSmsSender(
+                    (string) $mall->setting('sms.kavenegar_key', config('services.sms.kavenegar_key', '')),
+                );
             }
 
             return new FakeSmsSender();
         });
 
         $this->app->bind(PaymentGateway::class, function (): PaymentGateway {
-            if (config('services.payment.driver') === 'zarinpal') {
+            /** @var CurrentMall $mall */
+            $mall = app(CurrentMall::class);
+            $driver = (string) $mall->setting('payment.driver', config('services.payment.driver'));
+
+            if ($driver === 'zarinpal') {
                 return new ZarinpalGateway(
-                    (string) config('services.payment.zarinpal_merchant', ''),
-                    (string) config('services.payment.callback_url', ''),
+                    (string) $mall->setting('payment.zarinpal_merchant', config('services.payment.zarinpal_merchant', '')),
+                    (string) $mall->setting('payment.callback_url', config('services.payment.callback_url', '')),
                 );
             }
 

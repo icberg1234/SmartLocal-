@@ -22,8 +22,9 @@
 | Malls · Floors · Categories · Roles · Parking | ✅ seed می‌شوند (RolesSeeder/CategoriesSeeder/DatabaseSeeder) |
 | **`plans` (پکیج‌ها)** | ✅ افزوده شد — مطابقِ `Technical_Architecture` (جدولِ plans + `subscriptions.plan_id`)؛ سیدرِ silver/gold؛ endpoint عمومیِ `GET /api/v1/plans` |
 | تنظیماتِ هر پاساژ (`malls.settings`) | ✅ ستون + accessorِ `Mall::setting()` — مبنای کانفیگِ per-mall (درگاه/فیچرفلگ/ارز/ساعات) |
+| **سرویسِ پیامک + درگاهِ پرداخت، per-mall** | ✅ افزوده شد — `CurrentMall::setting()` نوعِ درایور و کلیدِ هر پاساژ را از `malls.settings` می‌خواند؛ fallback به configِ سراسری (تستِ `ProviderResolutionTest`) |
 | CRUDِ ادمین برای اطلاعات پایه | موکول — به پنلِ ادمینِ Inertia گره خورده (الان فقط seeder/مهاجرت) |
-| درگاهِ پرداختِ per-mall (سوار بر settings) | موکول — درایور فعلاً سراسری است (config) |
+| رمزنگاریِ سکرت‌ها در `settings` | 🟠 باز — کلیدِ APIِ هر پاساژ فعلاً plaintext در JSON؛ باید `encrypted:array` شود (نیازمندِ ستونِ `text` به‌جای `json`) |
 | قالبِ نوتیفیکیشن (template) | موکول — پیام‌ها هاردکدن |
 
 ## موکول‌شده طبق فازبندی

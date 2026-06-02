@@ -21,6 +21,12 @@ class DatabaseSeeder extends Seeder
             'name' => 'مجتمع تجاری الماس',
             'type' => 'mall',
             'subdomain' => 'almas',
+            'settings' => [
+                // Per-mall provider config (base data). Defaults to fake; in
+                // production set each mall's own driver + credentials here.
+                'sms' => ['driver' => 'fake', 'kavenegar_key' => ''],
+                'payment' => ['driver' => 'fake', 'zarinpal_merchant' => '', 'callback_url' => ''],
+            ],
         ]);
 
         foreach ([1, 2, 3] as $level) {

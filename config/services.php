@@ -24,13 +24,15 @@ return [
         ],
     ],
 
-    // SmartLocal — SMS gateway adapter selection.
+    // SmartLocal — SMS adapter (PLATFORM-WIDE FALLBACK).
+    // Per-mall override: malls.settings → 'sms.driver' / 'sms.kavenegar_key'.
     'sms' => [
         'driver' => env('SMS_DRIVER', 'fake'), // fake | kavenegar
         'kavenegar_key' => env('KAVENEGAR_API_KEY', ''),
     ],
 
-    // SmartLocal — payment gateway adapter selection.
+    // SmartLocal — payment adapter (PLATFORM-WIDE FALLBACK).
+    // Per-mall override: malls.settings → 'payment.driver' / 'payment.zarinpal_merchant'.
     'payment' => [
         'driver' => env('PAYMENT_DRIVER', 'fake'), // fake | zarinpal
         'zarinpal_merchant' => env('ZARINPAL_MERCHANT_ID', ''),
