@@ -51,7 +51,7 @@ function loadModel(i = 0) {
       model.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.material = mallMat } })
       scene.add(model)
       frame()
-      status.value = '✅ مدلِ کاملِ سه‌بعدی بارگذاری شد — بچرخان یا «تورِ داخلی» را بزن.'
+      status.value = '✅ مدلِ کاملِ سه‌بعدی بارگذاری شد — بچرخان یا «تورِ سینمایی» را بزن.'
     },
     (xhr) => { if (xhr.total) status.value = `در حال بارگذاریِ مدل… ${Math.round((xhr.loaded / xhr.total) * 100)}%` },
     () => loadModel(i + 1),
@@ -85,12 +85,11 @@ onMounted(() => {
   const loop = () => {
     raf = requestAnimationFrame(loop)
     if (view.value === 'walk' && model) {
-      walkT = (walkT + 0.0010) % 1
-      const tt = walkT < 0.5 ? walkT * 2 : (1 - walkT) * 2
-      const longX = size.x >= size.z, span = (longX ? size.x : size.z) * 0.72
-      const off = (tt - 0.5) * span, dir = walkT < 0.5 ? 1 : -1
-      if (longX) { camera.position.set(center.x + off, eyeY, center.z); camera.lookAt(center.x + off + dir * 6, eyeY, center.z) }
-      else { camera.position.set(center.x, eyeY, center.z + off); camera.lookAt(center.x, eyeY, center.z + dir * 6) }
+      walkT = (walkT + 0.0016) % 1
+      const ang = walkT * Math.PI * 2
+      const r = Math.max(size.x, size.z) * 0.6
+      camera.position.set(center.x + Math.cos(ang) * r, center.y + size.y * (0.5 + 0.12 * Math.sin(walkT * Math.PI * 4)), center.z + Math.sin(ang) * r)
+      camera.lookAt(center.x, center.y - size.y * 0.05, center.z)
     } else {
       controls.update()
     }
@@ -118,7 +117,7 @@ onBeforeUnmount(() => {
         <h2>مدلِ سه‌بعدیِ واقعیِ پاساژ</h2>
         <div class="src">
           <button :class="{ on: view === 'orbit' }" @click="setView('orbit')">🛰 مرور</button>
-          <button :class="{ on: view === 'walk' }" @click="setView('walk')">🚶 تورِ داخلی</button>
+          <button :class="{ on: view === 'walk' }" @click="setView('walk')">🎬 تورِ سینمایی</button>
         </div>
       </div>
       <p class="muted">{{ status }}</p>
