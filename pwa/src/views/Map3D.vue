@@ -26,6 +26,7 @@ const canvasWrap = ref(null)
 const stores = ref([])
 const dest = ref(null)
 const status = ref('')
+const view = ref('orbit')
 
 let renderer, scene, camera, controls, raf
 let mallGroup, routeGroup, walker, walkerT = 0, walkerCurve = null
@@ -71,7 +72,8 @@ function buildMall(list) {
   if (mallGroup) { scene.remove(mallGroup); mallGroup.traverse(o => { o.geometry?.dispose?.(); o.material?.map?.dispose?.(); o.material?.dispose?.() }) }
   mallGroup = new THREE.Group()
 
-  const floorMat = new THREE.MeshStandardMaterial({ color: 0xe9ecf5, roughness: 0.85 })
+  const floorMat = new THREE.MeshStandardMaterial({ color: 0xdfe3f0, roughness: 0.7, metalness: 0.15 })
+  const edgeMat = new THREE.MeshStandardMaterial({ color: 0x4f46e5, emissive: 0x6d28d9, emissiveIntensity: 1.1 })
   const trimMat = new THREE.MeshStandardMaterial({ color: 0x3b3f63, roughness: 0.6 })
   const glassMat = new THREE.MeshStandardMaterial({ color: 0x8fd3ff, transparent: true, opacity: 0.22, roughness: 0.1, metalness: 0.1 })
   const escMat = new THREE.MeshStandardMaterial({ color: 0x9aa3c7, roughness: 0.5, metalness: 0.3 })
@@ -90,6 +92,11 @@ function buildMall(list) {
     addBox(mallGroup, 0.12, 1.1, 2 * ID, IW, y + 0.7, 0, glassMat)
     // floor number trim
     addBox(mallGroup, 0.6, 0.6, 0.6, -OW + 0.6, y + 0.9, -OD + 0.6, trimMat)
+    // glowing atrium-edge accent
+    addBox(mallGroup, 2 * IW, 0.12, 0.2, 0, y + 0.2, -ID, edgeMat)
+    addBox(mallGroup, 2 * IW, 0.12, 0.2, 0, y + 0.2, ID, edgeMat)
+    addBox(mallGroup, 0.2, 0.12, 2 * ID, -IW, y + 0.2, 0, edgeMat)
+    addBox(mallGroup, 0.2, 0.12, 2 * ID, IW, y + 0.2, 0, edgeMat)
   }
 
   // escalators criss-crossing the atrium
@@ -128,7 +135,7 @@ function navigateTo(store) {
   walkerCurve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.3)
   routeGroup.add(new THREE.Mesh(new THREE.TubeGeometry(walkerCurve, 120, 0.22, 10, false),
     new THREE.MeshStandardMaterial({ color: 0x7c3aed, emissive: 0x6d28d9, emissiveIntensity: 1, transparent: true, opacity: 0.92 })))
-  walker = new THREE.Mesh(new THREE.SphereGeometry(0.5, 24, 24), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x7c3aed, emissiveIntensity: 1.3 }))
+  walker = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 1.0, 6, 14), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x7c3aed, emissiveIntensity: 1.1 }))
   routeGroup.add(walker); walkerT = 0; scene.add(routeGroup)
   let meters = 0
   for (let i = 1; i < pts.length; i++) meters += pts[i].distanceTo(pts[i - 1]) * UNIT_M
@@ -148,6 +155,11 @@ async function loadReal() {
   } catch (e) { status.value = 'خطا در اتصال به OpenStreetMap.' }
 }
 function loadBrands() { buildMall(layout(BRANDS.map(b => ({ ...b })))); status.value = '' }
+function setView(v) {
+  view.value = v
+  if (v === 'orbit') { controls.enabled = true; controls.autoRotate = true; camera.position.set(10, FLOORS * FH * 1.08, 62); controls.target.set(0, FLOORS * FH * 0.5, 0) }
+  else { controls.autoRotate = false }
+}
 
 onMounted(() => {
   const wrap = canvasWrap.value, w = wrap.clientWidth, h = wrap.clientHeight
@@ -156,6 +168,7 @@ onMounted(() => {
   renderer = new THREE.WebGLRenderer({ antialias: true })
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(w, h)
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15
   wrap.appendChild(renderer.domElement)
   controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true; controls.target.set(0, FLOORS * FH * 0.5, 0)
@@ -177,12 +190,25 @@ onMounted(() => {
   buildMall(layout(BRANDS.map(b => ({ ...b }))))
 
   const clock = new THREE.Clock()
+  const up = new THREE.Vector3(0, 1, 0)
+  const pPos = new THREE.Vector3(), pTan = new THREE.Vector3(), camGoal = new THREE.Vector3(), lookGoal = new THREE.Vector3()
   const loop = () => {
     raf = requestAnimationFrame(loop)
     const t = clock.getElapsedTime(), sc = 1 + Math.sin(t * 3) * 0.22
     ring.scale.set(sc, sc, sc); ring.material.opacity = 0.85 - (sc - 1)
-    if (walker && walkerCurve) { walkerT = (walkerT + 0.0035) % 1; walker.position.copy(walkerCurve.getPointAt(walkerT)) }
-    controls.update(); renderer.render(scene, camera)
+    const following = !!walkerCurve && view.value !== 'orbit'
+    if (walker && walkerCurve) {
+      walkerT = (walkerT + (following ? 0.0016 : 0.0035)) % 1
+      walkerCurve.getPointAt(walkerT, pPos); walkerCurve.getTangentAt(walkerT, pTan).normalize()
+      walker.position.copy(pPos); walker.visible = view.value !== 'first'
+    }
+    if (following) {
+      controls.enabled = false
+      if (view.value === 'first') { camGoal.copy(pPos).addScaledVector(up, 1.6); lookGoal.copy(pPos).addScaledVector(pTan, 6).addScaledVector(up, 1.3) }
+      else { camGoal.copy(pPos).addScaledVector(pTan, -9).addScaledVector(up, 5); lookGoal.copy(pPos).addScaledVector(pTan, 4).addScaledVector(up, 1) }
+      camera.position.lerp(camGoal, 0.08); camera.lookAt(lookGoal)
+    } else { controls.enabled = true; controls.update() }
+    renderer.render(scene, camera)
   }
   loop()
   window.addEventListener('resize', onResize)
@@ -212,6 +238,11 @@ const faNum = (n) => Number(n).toLocaleString('fa-IR')
       </div>
       <div v-if="dest" class="route-info">🧭 <b>{{ dest.name }}</b> · طبقهٔ {{ faNum(dest.floor) }} · {{ faNum(dest.meters) }} متر · ~{{ faNum(dest.secs) }} ثانیه</div>
       <p v-else class="muted">{{ status || 'یک فروشگاه را انتخاب کن تا مسیر را در طبقات برایت بکشم.' }}</p>
+      <div class="views">
+        <button :class="{ on: view === 'orbit' }" @click="setView('orbit')">🛰 مرور</button>
+        <button :class="{ on: view === 'third' }" @click="setView('third')">🎥 سوم‌شخص</button>
+        <button :class="{ on: view === 'first' }" @click="setView('first')">🚶 اول‌شخص</button>
+      </div>
     </div>
     <div ref="canvasWrap" class="canvas-wrap"></div>
     <div class="picker">
@@ -235,6 +266,9 @@ const faNum = (n) => Number(n).toLocaleString('fa-IR')
 .src button.on { background: #fff; color: #4f46e5; }
 .hud .muted { color: rgba(255,255,255,.72); margin: 6px 0 0; font-size: 12.5px; }
 .route-info { font-size: 14px; margin-top: 6px; }
+.views { display: flex; gap: 6px; margin-top: 8px; }
+.views button { font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08); color: #fff; padding: 6px 10px; border-radius: 999px; }
+.views button.on { background: #7c3aed; border-color: #7c3aed; }
 .route-info b { color: #a5b4fc; }
 .picker { position: absolute; bottom: 92px; inset-inline: 0; z-index: 5; display: flex; gap: 8px; overflow-x: auto; padding: 0 14px 4px; justify-content: center; flex-wrap: nowrap; }
 .chip { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 76px; max-width: 120px; height: 70px; padding: 8px 10px; border: 1px solid rgba(255,255,255,.14); border-radius: 14px; background: rgba(255,255,255,.95); cursor: pointer; font: inherit; font-size: 11px; font-weight: 700; color: #1b1f2a; }
