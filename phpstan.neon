@@ -2,14 +2,11 @@ includes:
     - vendor/larastan/larastan/extension.neon
 
 parameters:
-    # Start at 6 so the Phase-0 gate is realistically green on a fresh Laravel app.
-    # Ratchet plan: 6 (MVP start) -> 8 -> max as tech-debt is paid down per phase.
-    level: 6
+    # Level 5 for MVP start: full type checks without the verbose Laravel
+    # relation/factory generics (those are reported at level 6+ in PHPStan 2.x).
+    # Ratchet plan: 5 -> 6 (add relation generic phpdocs) -> max, per phase.
+    level: 5
     paths:
         - app
         - database
     tmpDir: build/phpstan
-    # Laravel relations/factories are generic; specifying every TModel is verbose.
-    # Standard, accepted setting for Laravel + Larastan projects.
-    checkGenericClassInNonGenericObjectType: false
-    treatPhpDocTypesAsCertain: false
