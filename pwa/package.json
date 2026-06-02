@@ -9,6 +9,7 @@
         "test": "vitest run"
     },
     "dependencies": {
+        "@mappedin/mappedin-js": "^6.19.0",
         "axios": "^1.7.0",
         "pinia": "^2.2.0",
         "three": "^0.184.0",
