@@ -2,6 +2,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 
 const PALETTE = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#64748b']
 const BRANDS = [
@@ -43,6 +44,13 @@ function layout(list) {
   return list
 }
 
+function skyTex() {
+  const c = document.createElement('canvas'); c.width = 16; c.height = 256
+  const ctx = c.getContext('2d'); const g = ctx.createLinearGradient(0, 0, 0, 256)
+  g.addColorStop(0, '#16203f'); g.addColorStop(0.5, '#2c3a63'); g.addColorStop(1, '#aeb9d6')
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 16, 256)
+  return new THREE.CanvasTexture(c)
+}
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r)
   ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath()
@@ -72,11 +80,11 @@ function buildMall(list) {
   if (mallGroup) { scene.remove(mallGroup); mallGroup.traverse(o => { o.geometry?.dispose?.(); o.material?.map?.dispose?.(); o.material?.dispose?.() }) }
   mallGroup = new THREE.Group()
 
-  const floorMat = new THREE.MeshStandardMaterial({ color: 0xdfe3f0, roughness: 0.7, metalness: 0.15 })
-  const edgeMat = new THREE.MeshStandardMaterial({ color: 0x4f46e5, emissive: 0x6d28d9, emissiveIntensity: 1.1 })
-  const trimMat = new THREE.MeshStandardMaterial({ color: 0x3b3f63, roughness: 0.6 })
-  const glassMat = new THREE.MeshStandardMaterial({ color: 0x8fd3ff, transparent: true, opacity: 0.22, roughness: 0.1, metalness: 0.1 })
-  const escMat = new THREE.MeshStandardMaterial({ color: 0x9aa3c7, roughness: 0.5, metalness: 0.3 })
+  const floorMat = new THREE.MeshStandardMaterial({ color: 0xeef1f8, roughness: 0.35, metalness: 0.25 })
+  const edgeMat = new THREE.MeshStandardMaterial({ color: 0x4f46e5, emissive: 0x6d28d9, emissiveIntensity: 1.2 })
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0x3b3f63, roughness: 0.5, metalness: 0.4 })
+  const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xcdeaff, metalness: 0, roughness: 0.05, transmission: 0.9, thickness: 0.4, transparent: true, opacity: 0.5, ior: 1.4, envMapIntensity: 1.4, side: THREE.DoubleSide })
+  const escMat = new THREE.MeshStandardMaterial({ color: 0xaab2d0, roughness: 0.3, metalness: 0.6 })
 
   for (let f = 0; f < FLOORS; f++) {
     const y = f * FH
@@ -109,8 +117,11 @@ function buildMall(list) {
   }
 
   // glass roof
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(2 * OW, 0.2, 2 * OD), new THREE.MeshStandardMaterial({ color: 0xbfe3ff, transparent: true, opacity: 0.18, roughness: 0.05 }))
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(2 * OW, 0.2, 2 * OD), glassMat)
   roof.position.set(0, FLOORS * FH, 0); mallGroup.add(roof)
+  // curved glass facade (front) — the iconic mall front
+  const facade = new THREE.Mesh(new THREE.CylinderGeometry(26, 26, FLOORS * FH, 72, 1, true, Math.PI * 0.65, Math.PI * 0.70), glassMat)
+  facade.position.set(0, FLOORS * FH / 2, OD); mallGroup.add(facade)
 
   // storefronts along the atrium-facing edges
   for (const s of list) {
@@ -129,10 +140,14 @@ function buildMall(list) {
 function navigateTo(store) {
   if (routeGroup) { scene.remove(routeGroup); routeGroup.traverse(o => { o.geometry?.dispose?.(); o.material?.dispose?.() }) }
   routeGroup = new THREE.Group()
-  const pts = [new THREE.Vector3(0, 0.4, -ID - 1.5)]
-  for (let l = 1; l <= store.floor; l++) pts.push(new THREE.Vector3((l % 2 ? 6 : -6), l * FH + 0.4, 0))
-  pts.push(new THREE.Vector3(store.x, store.floor * FH + 0.4, store.z + store.face * 2.4))
-  walkerCurve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.3)
+  const fy = (l) => l * FH + 0.5
+  const sgn = store.z < 0 ? -1 : 1
+  const pts = [new THREE.Vector3(0, 0.5, -ID - 1)]              // entrance (ground, atrium front)
+  for (let l = 1; l <= store.floor; l++) pts.push(new THREE.Vector3(l % 2 ? 6 : -6, fy(l), 0))  // climb INSIDE the open atrium
+  if (store.floor > 0) pts.push(new THREE.Vector3(store.x, fy(store.floor), 0))
+  pts.push(new THREE.Vector3(store.x, fy(store.floor), sgn * (ID + 1)))           // step onto the floor walkway
+  pts.push(new THREE.Vector3(store.x, fy(store.floor), store.z + store.face * 2.0)) // storefront
+  walkerCurve = new THREE.CatmullRomCurve3(pts, false, 'centripetal', 0.5)
   routeGroup.add(new THREE.Mesh(new THREE.TubeGeometry(walkerCurve, 120, 0.22, 10, false),
     new THREE.MeshStandardMaterial({ color: 0x7c3aed, emissive: 0x6d28d9, emissiveIntensity: 1, transparent: true, opacity: 0.92 })))
   walker = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 1.0, 6, 14), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x7c3aed, emissiveIntensity: 1.1 }))
@@ -163,22 +178,24 @@ function setView(v) {
 
 onMounted(() => {
   const wrap = canvasWrap.value, w = wrap.clientWidth, h = wrap.clientHeight
-  scene = new THREE.Scene(); scene.background = new THREE.Color(0x0c0f22); scene.fog = new THREE.Fog(0x0c0f22, 55, 110)
+  scene = new THREE.Scene(); scene.background = skyTex(); scene.fog = new THREE.Fog(0x2a3556, 75, 140)
   camera = new THREE.PerspectiveCamera(46, w / h, 0.1, 300); camera.position.set(10, FLOORS * FH * 1.08, 62)
   renderer = new THREE.WebGLRenderer({ antialias: true })
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(w, h)
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15
   wrap.appendChild(renderer.domElement)
+  const pmrem = new THREE.PMREMGenerator(renderer)
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
   controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true; controls.target.set(0, FLOORS * FH * 0.5, 0)
   controls.maxPolarAngle = Math.PI / 2.05; controls.minDistance = 24; controls.maxDistance = 95
   controls.autoRotate = true; controls.autoRotateSpeed = 0.55
-  scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x202840, 0.9))
+  scene.add(new THREE.HemisphereLight(0xdfeaff, 0x2a3048, 1.0))
   const dir = new THREE.DirectionalLight(0xffffff, 1.05); dir.position.set(18, 40, 22); dir.castShadow = true
   dir.shadow.mapSize.set(2048, 2048); Object.assign(dir.shadow.camera, { left: -35, right: 35, top: 45, bottom: -10, far: 120 })
   scene.add(dir)
-  for (let f = 0; f < FLOORS; f++) { const pl = new THREE.PointLight(0xffe9c7, 0.5, 30); pl.position.set(0, f * FH + 2.5, 0); scene.add(pl) }
+  for (let f = 0; f < FLOORS; f++) { const pl = new THREE.PointLight(0xffe3b8, 1.1, 40); pl.position.set(0, f * FH + 2.6, 0); scene.add(pl) }
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshStandardMaterial({ color: 0x0a0c1c, roughness: 1 }))
   ground.rotation.x = -Math.PI / 2; ground.position.y = -0.2; ground.receiveShadow = true; scene.add(ground)
   // "you are here" at ground entrance
