@@ -10,7 +10,6 @@ use App\Modules\Auth\Http\Resources\UserResource;
 use App\Modules\Auth\Services\OtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\JsonResource;
 
 final class AuthController
 {
@@ -23,12 +22,13 @@ final class AuthController
         return response()->json(['message' => 'کد ارسال شد.']);
     }
 
-    public function verifyOtp(VerifyOtpRequest $request): JsonResource
+    public function verifyOtp(VerifyOtpRequest $request): JsonResponse
     {
         $data = $request->validated();
         $result = $this->otp->verify($data['phone'], $data['code']);
 
-        return (new UserResource($result['user']))->additional([
+        return response()->json([
+            'data' => (new UserResource($result['user']))->resolve($request),
             'token' => $result['token'],
             'is_new' => $result['is_new'],
         ]);
