@@ -23,8 +23,8 @@ final class ModuleServiceProvider extends ServiceProvider
         $this->app->singleton(CurrentMall::class);
 
         $this->app->bind(SmsSender::class, function (): SmsSender {
-            if (env('SMS_DRIVER', 'fake') === 'kavenegar') {
-                return new KavenegarSmsSender((string) env('KAVENEGAR_API_KEY', ''));
+            if (config('services.sms.driver') === 'kavenegar') {
+                return new KavenegarSmsSender((string) config('services.sms.kavenegar_key', ''));
             }
 
             return new FakeSmsSender();

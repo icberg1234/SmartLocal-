@@ -38,11 +38,7 @@ final class AuthController
     {
         /** @var \App\Models\User $user */
         $user = $request->user();
-        $token = $user->currentAccessToken();
-
-        if ($token instanceof \Laravel\Sanctum\PersonalAccessToken) {
-            $token->delete();
-        }
+        $user->currentAccessToken()->delete();
 
         return response()->json(['message' => 'خروج انجام شد.']);
     }

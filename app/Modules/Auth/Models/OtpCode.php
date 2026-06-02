@@ -5,7 +5,16 @@ declare(strict_types=1);
 namespace App\Modules\Auth\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $phone
+ * @property string $code_hash
+ * @property int $attempts
+ * @property Carbon $expires_at
+ * @property Carbon|null $locked_until
+ */
 class OtpCode extends Model
 {
     public const UPDATED_AT = null;

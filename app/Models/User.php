@@ -12,6 +12,14 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
+/**
+ * @property int $id
+ * @property string|null $phone
+ * @property string $type
+ * @property string $status
+ * @property string|null $name
+ * @property string|null $email
+ */
 class User extends Authenticatable
 {
     use HasApiTokens;
