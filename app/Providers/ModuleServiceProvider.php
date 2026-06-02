@@ -11,6 +11,9 @@ use App\Modules\Core\Support\CurrentMall;
 use App\Modules\Venue\Services\Payment\FakeGateway;
 use App\Modules\Venue\Services\Payment\PaymentGateway;
 use App\Modules\Venue\Services\Payment\ZarinpalGateway;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -47,6 +50,11 @@ final class ModuleServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // D2 fix: OTP request throttle keyed by phone (not IP — shared mobile NAT).
+        RateLimiter::for('otp', function (Request $request): Limit {
+            return Limit::perMinute(5)->by((string) $request->input('phone', (string) $request->ip()));
+        });
+
         foreach ($this->modulePaths() as $module) {
             $routes = $module.DIRECTORY_SEPARATOR.'routes.php';
             if (is_file($routes)) {

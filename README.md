@@ -1,0 +1,47 @@
+# SmartLocal — Platform (MVP)
+
+سامانه‌ی بازاریابیِ محلیِ پاساژها: مشتری با QR وارد می‌شود، عضو می‌شود، سرِ صندوق تخفیفِ عضو + امتیازِ کل‌پاساژ می‌گیرد، فروشگاه‌ها را فالو می‌کند و نوتیفِ جشنواره دریافت می‌کند. Laravel 11 (Modular Monolith، API-first، event-sourced core) + PWA مشتری (Vue 3).
+
+## وضعیت
+**MVP بک‌اند + PWA مشتری — هر ۹ فاز (۰–۸) ساخته و CI-سبز** (~۴۴ تستِ بک‌اند + تستِ فرانت).
+
+| فاز | محتوا |
+|---|---|
+| ۰ | پایه · Tenancy (Global Scope) · Event Store |
+| ۱ | احراز هویت OTP · Sanctum · RBAC (spatie) |
+| ۲ | فروشگاه/محصول/دسته · whitelist · سهمیه پکیج |
+| ۳ | ⭐ ریل Redemption (QR داینامیک، تخفیف، امتیاز، ضدتقلب) |
+| ۴ | امتیاز/سطح/انقضا/خرج · CRM (پروفایل/سگمنت) |
+| ۵ | جشنواره · فالو · نوتیفِ consent-gated |
+| ۶ | نقشه · پارکینگ (ظرفیت/لاتاری) · پرداخت (Fake/Zarinpal) |
+| ۷ | PWA مشتری (Vue3+Vite): ورود/خانه/کد تخفیف |
+| ۸ | آنالیتیکس/KPI (MRC، GMV، Active Stores، Repeat Rate) |
+
+## معماری
+- **Modular Monolith:** `app/Modules/{Core,Auth,BusinessUnits,Redemption,Festival,Venue,Analytics}` — هر ماژول routes/migrations خودکار (ModuleServiceProvider).
+- **چندمستأجری:** `mall_id` + Global Scope (`BelongsToMall`) + middleware `ResolveTenant` (هدر `X-Mall-Id`).
+- **Event Store:** هر اکشن مهم → `events` (immutable، CDP-ready).
+- **هسته‌ی پولی:** «ریلِ Redemption» — QR داینامیکِ رمزنگاری‌شده → تخفیف + امتیاز + پروفایل + رویداد، در یک تراکنش اتمیک.
+
+## راه‌اندازی
+⚠️ این ریپو **overlayِ کدِ سفارشی** است، نه اپ کاملِ vanilla (بدهی D6). برای بوت، `SETUP.md` را ببینید (یک `composer create-project` لازم است). CI خودش اپ کامل را اسمبل و تست می‌کند (`.github/workflows/ci.yml`).
+
+```bash
+# گِیت (پس از اسمبل/بوت طبق SETUP):
+composer test     # Pest
+composer stan     # PHPStan (larastan)
+# فرانت:
+cd pwa && npm install && npm run build && npm run test
+```
+
+## مستندات
+- `SETUP.md` — راه‌اندازی · `docs/PHASE_0_REPORT.md` — گزارش فاز ۰
+- `docs/TECH_DEBT.md` — بدهیِ فنیِ شناخته‌شده (D3/D4/D5/D6 باز)
+- اسناد محصول/استراتژی (در ریشه‌ی پروژه‌ی والد): پروپوزال، معماری، فلوچارت‌ها، نقشه اجرا، سناریو، PMF Assumptions، KPI Spec، Developer Handoff، MVC Blueprint، PreBuild Specs.
+
+## بدهیِ فنیِ باز (قبل از پروداکشن)
+- **D4/D5:** بازگرداندنِ `pint --test` و بالا‌بردنِ PHPStan به max (نیازمند محیط PHP محلی).
+- **D6:** snapshot ریپو به vanilla Laravel.
+- موکول: پنل‌های مدیر/فروشگاه (Inertia)، E2E، اتصالِ واقعیِ FCM/Kavenegar/Zarinpal، fraud-ML، CDP کامل.
+
+> **یادآوری:** کدِ سبز ≠ PMF. اعتبارسنجیِ فرض‌های A0–A10 (پذیرشِ مشتری/فروشگاه/مدیر) در پاساژِ واقعی، قدمِ بعدیِ کسب‌وکار است (رجوع به سند PMF).

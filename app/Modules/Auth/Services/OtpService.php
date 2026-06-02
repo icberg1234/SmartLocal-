@@ -11,6 +11,7 @@ use App\Modules\Auth\Services\Sms\SmsSender;
 use App\Modules\Core\Support\EventRecorder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 final class OtpService
 {
@@ -27,6 +28,12 @@ final class OtpService
 
     public function request(string $phone): void
     {
+        // D1 fix: a locked phone cannot mint a fresh code (closes the lock-reset bypass).
+        $latest = OtpCode::query()->where('phone', $phone)->latest('id')->first();
+        if ($latest !== null && $latest->isLocked()) {
+            throw new HttpException(429, 'به‌دلیل تلاش‌های زیاد موقتاً قفل شده است؛ بعداً تلاش کنید.');
+        }
+
         OtpCode::query()->where('phone', $phone)->delete();
 
         $code = (string) random_int(100000, 999999);

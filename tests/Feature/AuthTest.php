@@ -90,3 +90,25 @@ it('logs out an authenticated user', function () {
 
     $this->withToken($token)->postJson('/api/v1/auth/logout')->assertOk();
 });
+
+it('does not let a locked phone request a fresh code (D1: no lock bypass)', function () {
+    $this->postJson('/api/v1/auth/request-otp', ['phone' => '09121119900']);
+    for ($i = 0; $i < 3; $i++) {
+        $this->postJson('/api/v1/auth/verify-otp', ['phone' => '09121119900', 'code' => '000000'])
+            ->assertStatus(422);
+    }
+
+    // Locked now → a new request must be blocked (cannot reset the lock).
+    $this->postJson('/api/v1/auth/request-otp', ['phone' => '09121119900'])
+        ->assertStatus(429);
+});
+
+it('throttles OTP requests per-phone, not globally (D2)', function () {
+    for ($i = 0; $i < 5; $i++) {
+        $this->postJson('/api/v1/auth/request-otp', ['phone' => '09121110001'])->assertOk();
+    }
+    $this->postJson('/api/v1/auth/request-otp', ['phone' => '09121110001'])->assertStatus(429);
+
+    // A different phone is unaffected.
+    $this->postJson('/api/v1/auth/request-otp', ['phone' => '09121110002'])->assertOk();
+});
