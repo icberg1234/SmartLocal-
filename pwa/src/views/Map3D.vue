@@ -31,7 +31,7 @@ const view = ref('orbit')
 
 let renderer, scene, camera, controls, raf
 let mallGroup, routeGroup, walker, walkerT = 0, walkerCurve = null
-let camTarget = null
+let camTarget = null, followFresh = false
 
 // shared materials (created once)
 const M = {}
@@ -179,14 +179,26 @@ function navigateTo(store) {
   if (routeGroup) { scene.remove(routeGroup); routeGroup.traverse(o => { o.geometry?.dispose?.(); o.material?.dispose?.() }) }
   routeGroup = new THREE.Group()
   const fy = (l) => l * FH + 0.55, sgn = store.z < 0 ? -1 : 1
-  const pts = [new THREE.Vector3(0, 0.55, -ID - 1)]
-  for (let l = 1; l <= store.floor; l++) pts.push(new THREE.Vector3(l % 2 ? 6.5 : -6.5, fy(l), 0))
-  if (store.floor > 0) pts.push(new THREE.Vector3(store.x, fy(store.floor), 0))
-  pts.push(new THREE.Vector3(store.x, fy(store.floor), sgn * (ID + 1)))
-  pts.push(new THREE.Vector3(store.x, fy(store.floor), store.z + store.face * 2.1))
-  walkerCurve = new THREE.CatmullRomCurve3(pts, false, 'centripetal', 0.5)
-  routeGroup.add(new THREE.Mesh(new THREE.TubeGeometry(walkerCurve, 130, 0.2, 12, false),
-    new THREE.MeshStandardMaterial({ color: 0x7c3aed, emissive: 0x6d28d9, emissiveIntensity: 1.1, transparent: true, opacity: 0.92 })))
+  const escX = (f) => (f % 2 === 0 ? -1 : 1) * 6.5, zEnd = ID - 1
+  const pts = [new THREE.Vector3(0, 0.55, -ID - 1)]                       // entrance
+  for (let f = 0; f < store.floor; f++) {                                // ride each escalator up
+    pts.push(new THREE.Vector3(escX(f), fy(f), zEnd))                     // walk to escalator base
+    pts.push(new THREE.Vector3(escX(f), fy(f + 1), -zEnd))                // ride up to next floor
+  }
+  pts.push(new THREE.Vector3(store.x, fy(store.floor), sgn * (ID + 1.2))) // walk along the floor
+  pts.push(new THREE.Vector3(store.x, fy(store.floor), store.z + store.face * 2.1)) // arrive
+  walkerCurve = new THREE.CatmullRomCurve3(pts, false, 'centripetal', 0.4)
+  routeGroup.add(new THREE.Mesh(new THREE.TubeGeometry(walkerCurve, 220, 0.26, 14, false),
+    new THREE.MeshStandardMaterial({ color: 0x8b5cf6, emissive: 0x7c3aed, emissiveIntensity: 1.7, transparent: true, opacity: 0.95 })))
+  // direction arrows so the route is unmistakable
+  const arrowMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xc4b5fd, emissiveIntensity: 1.4 })
+  for (let i = 1; i < 16; i++) {
+    const u = i / 16, p = walkerCurve.getPointAt(u), tg = walkerCurve.getTangentAt(u).normalize()
+    const a = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.7, 12), arrowMat)
+    a.position.copy(p); a.position.y += 0.12
+    a.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tg)
+    routeGroup.add(a)
+  }
   walker = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 0.9, 6, 14), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x7c3aed, emissiveIntensity: 1.2 }))
   routeGroup.add(walker); walkerT = 0; scene.add(routeGroup)
   let meters = 0
@@ -209,7 +221,7 @@ async function loadReal() {
 function loadBrands() { buildMall(layout(BRANDS.map(b => ({ ...b })))); status.value = '' }
 function setView(v) {
   view.value = v
-  if (v === 'orbit') { controls.enabled = true; controls.autoRotate = true } else { controls.autoRotate = false }
+  if (v === 'orbit') { controls.enabled = true; controls.autoRotate = true } else { controls.autoRotate = false; followFresh = true }
 }
 function focusFloor(f) {
   view.value = 'orbit'; controls.autoRotate = false
@@ -247,22 +259,24 @@ onMounted(() => {
   buildMall(layout(BRANDS.map(b => ({ ...b }))))
 
   const clock = new THREE.Clock(), up = new THREE.Vector3(0, 1, 0)
-  const pPos = new THREE.Vector3(), pTan = new THREE.Vector3(), camGoal = new THREE.Vector3(), lookGoal = new THREE.Vector3()
+  const pPos = new THREE.Vector3(), pTan = new THREE.Vector3(), camGoal = new THREE.Vector3(), lookGoal = new THREE.Vector3(), smoothLook = new THREE.Vector3(), flatTan = new THREE.Vector3()
   const loop = () => {
     raf = requestAnimationFrame(loop)
     const t = clock.getElapsedTime(), sc = 1 + Math.sin(t * 3) * 0.22
     ring.scale.set(sc, sc, sc); ring.material.opacity = 0.85 - (sc - 1)
     const following = !!walkerCurve && view.value !== 'orbit'
     if (walker && walkerCurve) {
-      walkerT = (walkerT + (following ? 0.0015 : 0.0032)) % 1
+      walkerT = (walkerT + (following ? 0.0011 : 0.0032)) % 1
       walkerCurve.getPointAt(walkerT, pPos); walkerCurve.getTangentAt(walkerT, pTan).normalize()
       walker.position.copy(pPos); walker.visible = view.value !== 'first'
     }
     if (following) {
       controls.enabled = false
-      if (view.value === 'first') { camGoal.copy(pPos).addScaledVector(up, 1.6); lookGoal.copy(pPos).addScaledVector(pTan, 6).addScaledVector(up, 1.3) }
-      else { camGoal.copy(pPos).addScaledVector(pTan, -9).addScaledVector(up, 5); lookGoal.copy(pPos).addScaledVector(pTan, 4).addScaledVector(up, 1) }
-      camera.position.lerp(camGoal, 0.08); camera.lookAt(lookGoal)
+      if (view.value === 'first') { flatTan.set(pTan.x, pTan.y * 0.25, pTan.z).normalize(); camGoal.copy(pPos).addScaledVector(up, 1.6).addScaledVector(flatTan, -0.2); lookGoal.copy(pPos).addScaledVector(flatTan, 8).addScaledVector(up, 1.0) }
+      else { camGoal.copy(pPos).addScaledVector(pTan, -8).addScaledVector(up, 4.5); lookGoal.copy(pPos).addScaledVector(pTan, 5).addScaledVector(up, 1) }
+      if (followFresh) { camera.position.copy(camGoal); smoothLook.copy(lookGoal); followFresh = false }
+      else { camera.position.lerp(camGoal, 0.06); smoothLook.lerp(lookGoal, 0.06) }
+      camera.lookAt(smoothLook)
     } else if (camTarget) {
       controls.enabled = false
       camera.position.lerp(camTarget.pos, 0.06); camera.lookAt(camTarget.look)
