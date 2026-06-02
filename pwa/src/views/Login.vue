@@ -83,7 +83,7 @@ async function demo(devPhone, to) {
       <div class="demo-h">⚡ ورودِ سریعِ آزمایشی <small class="muted">(بدون پیامک)</small></div>
       <button class="btn btn--ghost btn--block" :disabled="loading" @click="demo('09120000001', '/home')">👤 ورود به‌عنوان مشتری</button>
       <button class="btn btn--ghost btn--block" :disabled="loading" style="margin-top:8px" @click="demo('09120000002', '/admin')">🧑‍💼 ورود به‌عنوان مدیر پاساژ</button>
-      <button class="btn btn--ghost btn--block" :disabled="loading" style="margin-top:8px" @click="demo('09120000003', '/home')">🏬 ورود به‌عنوان فروشنده</button>
+      <button class="btn btn--ghost btn--block" :disabled="loading" style="margin-top:8px" @click="demo('09120000003', '/redeem')">🏬 ورود به‌عنوان فروشنده (صندوق)</button>
     </div>
   </section>
 </template>

@@ -4,6 +4,7 @@ import Login from './views/Login.vue'
 import Home from './views/Home.vue'
 import MyQr from './views/MyQr.vue'
 import Map3D from './views/Map3D.vue'
+import Redeem from './views/Redeem.vue'
 import AdminDashboard from './views/admin/AdminDashboard.vue'
 import AdminSettings from './views/admin/AdminSettings.vue'
 import AdminPlans from './views/admin/AdminPlans.vue'
@@ -14,6 +15,7 @@ const routes = [
     { path: '/home', name: 'home', component: Home },
     { path: '/my-qr', name: 'my-qr', component: MyQr },
     { path: '/map', name: 'map', component: Map3D },
+    { path: '/redeem', name: 'redeem', component: Redeem },
     { path: '/admin', name: 'admin', component: AdminDashboard },
     { path: '/admin/settings', name: 'admin-settings', component: AdminSettings },
     { path: '/admin/plans', name: 'admin-plans', component: AdminPlans },
