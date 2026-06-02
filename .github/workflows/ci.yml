@@ -54,6 +54,7 @@ jobs:
           cp overlay/app/Models/User.php app/app/Models/
           cp overlay/config/auth.php app/config/auth.php
           cp overlay/config/services.php app/config/services.php
+          cp overlay/config/smartlocal.php app/config/smartlocal.php
           cp overlay/database/factories/MallFactory.php app/database/factories/
           cp overlay/database/seeders/*.php app/database/seeders/
           cp overlay/tests/Pest.php app/tests/Pest.php
