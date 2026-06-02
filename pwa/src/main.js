@@ -7,9 +7,9 @@ import { setMall } from './api'
 import { useAuth } from './stores/auth'
 
 async function boot() {
-  // Dev demo: mock the backend so the app is fully clickable with no server.
-  // Disable with: localStorage.setItem('real', '1')
-  if (import.meta.env.DEV && localStorage.getItem('real') !== '1') {
+  // Dev: by default the PWA talks to the REAL backend (vite proxies /api -> :8000).
+  // Opt into the no-backend mock with: localStorage.setItem('mock', '1')
+  if (import.meta.env.DEV && localStorage.getItem('mock') === '1') {
     const { installMock } = await import('./mock')
     installMock()
   }

@@ -44,6 +44,17 @@ cd pwa && npm install && npm run build && npm run test
 | مدیر پاساژ | `09120000002` |
 | فروشنده | `09120000003` |
 
+## اجرای واقعیِ لوکال (بدون Docker، با SQLite)
+نیاز: Node + PHP 8.3 (`winget install PHP.PHP.8.3`) + Composer.
+1. در `php.ini` فعال کن: `openssl, pdo_sqlite, sqlite3, mbstring, fileinfo, curl, zip`.
+2. اسمبل (یک‌بار): `composer create-project laravel/laravel:^11 ../smartlocal-run` → overlay را کپی کن → `composer require laravel/sanctum spatie/laravel-permission` → `vendor:publish` (spatie + sanctum).
+3. `.env`: `DB_CONNECTION=sqlite` (+ بساز `database/database.sqlite`)، `CACHE_STORE=file`، `SESSION_DRIVER=file`، `QUEUE_CONNECTION=sync` → `php artisan key:generate`.
+4. `php artisan migrate:fresh --seed` (DemoSeederِ صفر‌تا‌صد).
+5. **بک‌اند:** `php -S 127.0.0.1:8088 server.php` — توجه: روی بعضی ویندوزها `php artisan serve` نمی‌تواند bind کند؛ از `php -S` + یک `server.php` ساده استفاده کن.
+6. **فرانت:** `cd pwa && npm run dev` → **http://127.0.0.1:5173** (vite، `/api` را به `:8088` پروکسی می‌کند).
+
+ورود: در صفحهٔ ورود، دکمه‌های «ورودِ سریعِ آزمایشی» (مشتری/مدیر/فروشنده) — بدون SMS. برای دموی بدونِ بک‌اند: `localStorage.setItem('mock','1')`.
+
 ## مستندات
 - `SETUP.md` — راه‌اندازی · `docs/PHASE_0_REPORT.md` — گزارش فاز ۰
 - `docs/TECH_DEBT.md` — بدهیِ فنیِ شناخته‌شده (D3/D4/D5/D6 باز)
