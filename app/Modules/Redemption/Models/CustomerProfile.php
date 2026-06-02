@@ -6,6 +6,7 @@ namespace App\Modules\Redemption\Models;
 
 use App\Modules\Core\Models\Concerns\BelongsToMall;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $mall_id
  * @property int $visit_count
  * @property int $total_spent
+ * @property Carbon|null $last_visit_at
  */
 class CustomerProfile extends Model
 {
