@@ -58,7 +58,7 @@ it('computes mall KPIs for the manager', function () {
         ->assertJsonPath('monthly_redeeming_customers', 2)
         ->assertJsonPath('redeemed_gmv', 4_000_000)
         ->assertJsonPath('active_redeeming_stores', 1)
-        ->assertJsonPath('repeat_redemption_rate', 100.0);
+        ->assertJsonPath('repeat_redemption_rate', 100);
 });
 
 it('computes the store owner KPIs', function () {
