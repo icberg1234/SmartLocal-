@@ -27,6 +27,9 @@ class User extends Authenticatable
     use HasRoles;
     use Notifiable;
 
+    /** Pin spatie role/permission resolution to a single guard (OTP + Sanctum both map here). */
+    public string $guard_name = 'web';
+
     protected $fillable = [
         'phone', 'type', 'status', 'name', 'email', 'password',
     ];
