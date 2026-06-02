@@ -56,5 +56,8 @@ class DatabaseSeeder extends Seeder
             'available' => 200,
             'hourly_rate' => 15000,
         ]);
+
+        // Zero-to-hundred demo data + demo accounts (customer/manager/owner).
+        $this->call(DemoSeeder::class);
     }
 }

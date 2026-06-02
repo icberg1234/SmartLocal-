@@ -31,6 +31,16 @@ export const useAuth = defineStore('auth', {
             return data
         },
 
+        // Demo-only: log in without SMS (backend route exists outside production).
+        async devLogin(phone) {
+            const { data } = await api.post('/dev/login', { phone })
+            this.token = data.token
+            this.user = data.data
+            localStorage.setItem('token', data.token)
+            setToken(data.token)
+            return data
+        },
+
         logout() {
             this.token = null
             this.user = null

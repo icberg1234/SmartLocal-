@@ -11,6 +11,7 @@ const code = ref('')
 const step = ref('phone')
 const error = ref('')
 const loading = ref(false)
+const isDev = import.meta.env.DEV
 
 async function sendOtp() {
   error.value = ''
@@ -33,6 +34,19 @@ async function verify() {
     router.push('/home')
   } catch (e) {
     error.value = e?.response?.data?.message || 'کد نادرست است'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function demo(devPhone, to) {
+  error.value = ''
+  loading.value = true
+  try {
+    await auth.devLogin(devPhone)
+    router.push(to)
+  } catch (e) {
+    error.value = 'ورودِ آزمایشی ناموفق — آیا «php artisan db:seed» اجرا شده؟'
   } finally {
     loading.value = false
   }
@@ -64,5 +78,17 @@ async function verify() {
 
       <p v-if="error" class="error">{{ error }}</p>
     </div>
+
+    <div v-if="isDev" class="card demo">
+      <div class="demo-h">⚡ ورودِ سریعِ آزمایشی <small class="muted">(بدون پیامک)</small></div>
+      <button class="btn btn--ghost btn--block" :disabled="loading" @click="demo('09120000001', '/home')">👤 ورود به‌عنوان مشتری</button>
+      <button class="btn btn--ghost btn--block" :disabled="loading" style="margin-top:8px" @click="demo('09120000002', '/admin')">🧑‍💼 ورود به‌عنوان مدیر پاساژ</button>
+      <button class="btn btn--ghost btn--block" :disabled="loading" style="margin-top:8px" @click="demo('09120000003', '/home')">🏬 ورود به‌عنوان فروشنده</button>
+    </div>
   </section>
 </template>
+
+<style scoped>
+.demo { margin-top: 14px; }
+.demo-h { font-weight: 700; margin-bottom: 12px; }
+</style>
