@@ -78,9 +78,11 @@ function navigateTo(brand) {
   if (!brand.pos) return
   if (routeGroup) { scene.remove(routeGroup); routeGroup.traverse(o => { o.geometry?.dispose?.(); o.material?.dispose?.() }) }
   routeGroup = new THREE.Group()
-  const lift = unit * 3
-  const mid = youPos.clone().lerp(brand.pos, 0.5); mid.y += lift
-  walkerCurve = new THREE.CatmullRomCurve3([youPos.clone(), mid, brand.pos.clone()], false, 'centripetal', 0.4)
+  const ry = youPos.y + unit * 1.6
+  const a0 = youPos.clone(); a0.y = ry
+  const corner = new THREE.Vector3(brand.pos.x, ry, youPos.z)
+  const b0 = brand.pos.clone(); b0.y = ry
+  walkerCurve = new THREE.CatmullRomCurve3([a0, corner, b0], false, 'centripetal', 0.2)
   routeGroup.add(new THREE.Mesh(new THREE.TubeGeometry(walkerCurve, 90, unit * 0.6, 10, false),
     new THREE.MeshStandardMaterial({ color: 0x8b5cf6, emissive: 0x7c3aed, emissiveIntensity: 1.7, transparent: true, opacity: 0.95 })))
   const am = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xc4b5fd, emissiveIntensity: 1.3 })
@@ -94,8 +96,9 @@ function navigateTo(brand) {
   const dist = youPos.distanceTo(brand.pos), meters = Math.max(5, Math.round(dist * 1.8))
   dest.value = { name: brand.name, meters, secs: Math.round(meters / 1.3) }
   controls.autoRotate = false
-  controls.target.copy(mid); controls.target.y = (youPos.y + brand.pos.y) / 2
-  camera.position.set(mid.x + dist * 0.95, mid.y + dist * 0.85, mid.z + dist * 0.95)
+  const midp = youPos.clone().lerp(brand.pos, 0.5)
+  controls.target.copy(midp)
+  camera.position.set(midp.x + dist * 0.95, midp.y + dist * 0.85, midp.z + dist * 0.95)
 }
 
 function frame() {
