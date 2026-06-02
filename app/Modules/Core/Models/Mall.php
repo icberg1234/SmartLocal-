@@ -32,6 +32,15 @@ class Mall extends Model
         return $this->hasMany(Floor::class);
     }
 
+    /**
+     * Read a per-mall configuration value (dot-notation) from the settings JSON.
+     * The base for per-mall config: gateway choice, feature flags, locale, hours.
+     */
+    public function setting(string $key, mixed $default = null): mixed
+    {
+        return data_get($this->settings, $key, $default);
+    }
+
     protected static function newFactory(): Factory
     {
         return MallFactory::new();

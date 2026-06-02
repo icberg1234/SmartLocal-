@@ -14,6 +14,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('mall_id')->constrained()->cascadeOnDelete();
             $table->string('plan')->default('silver');
+            $table->foreignId('plan_id')->nullable()->constrained('plans')->nullOnDelete();
             $table->unsignedInteger('store_quota')->default(0);
             $table->timestamp('starts_at')->nullable();
             $table->timestamp('ends_at')->nullable();

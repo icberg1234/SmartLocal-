@@ -1,5 +1,7 @@
 /vendor
 /node_modules
+/pwa/node_modules
+/pwa/dist
 /public/build
 /public/hot
 /public/storage
