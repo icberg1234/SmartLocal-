@@ -8,6 +8,9 @@ use App\Modules\Auth\Services\Sms\FakeSmsSender;
 use App\Modules\Auth\Services\Sms\KavenegarSmsSender;
 use App\Modules\Auth\Services\Sms\SmsSender;
 use App\Modules\Core\Support\CurrentMall;
+use App\Modules\Venue\Services\Payment\FakeGateway;
+use App\Modules\Venue\Services\Payment\PaymentGateway;
+use App\Modules\Venue\Services\Payment\ZarinpalGateway;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -28,6 +31,17 @@ final class ModuleServiceProvider extends ServiceProvider
             }
 
             return new FakeSmsSender();
+        });
+
+        $this->app->bind(PaymentGateway::class, function (): PaymentGateway {
+            if (config('services.payment.driver') === 'zarinpal') {
+                return new ZarinpalGateway(
+                    (string) config('services.payment.zarinpal_merchant', ''),
+                    (string) config('services.payment.callback_url', ''),
+                );
+            }
+
+            return new FakeGateway();
         });
     }
 

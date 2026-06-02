@@ -23,4 +23,7 @@ return [
 
     // Max notifications per user per day (anti-fatigue).
     'notif_daily_cap' => (int) env('NOTIF_DAILY_CAP', 5),
+
+    // Free-parking lottery win chance (percent) on reservation.
+    'parking_lottery_pct' => (int) env('PARKING_LOTTERY_PCT', 0),
 ];

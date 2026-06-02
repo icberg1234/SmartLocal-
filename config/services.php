@@ -29,4 +29,11 @@ return [
         'driver' => env('SMS_DRIVER', 'fake'), // fake | kavenegar
         'kavenegar_key' => env('KAVENEGAR_API_KEY', ''),
     ],
+
+    // SmartLocal — payment gateway adapter selection.
+    'payment' => [
+        'driver' => env('PAYMENT_DRIVER', 'fake'), // fake | zarinpal
+        'zarinpal_merchant' => env('ZARINPAL_MERCHANT_ID', ''),
+        'callback_url' => env('PAYMENT_CALLBACK_URL', 'http://localhost:8080/api/v1/payment/callback'),
+    ],
 ];

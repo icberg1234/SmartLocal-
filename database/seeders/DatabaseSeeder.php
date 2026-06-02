@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use App\Modules\BusinessUnits\Models\Subscription;
 use App\Modules\Core\Models\Floor;
 use App\Modules\Core\Models\Mall;
+use App\Modules\Venue\Models\ParkingLot;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -34,6 +35,14 @@ class DatabaseSeeder extends Seeder
             'plan' => 'silver',
             'store_quota' => 50,
             'status' => 'active',
+        ]);
+
+        ParkingLot::query()->create([
+            'mall_id' => $mall->id,
+            'name' => 'پارکینگ مرکزی',
+            'capacity' => 200,
+            'available' => 200,
+            'hourly_rate' => 15000,
         ]);
     }
 }

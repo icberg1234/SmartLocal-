@@ -7,6 +7,13 @@ namespace App\Modules\Core\Models;
 use App\Modules\Core\Models\Concerns\BelongsToMall;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property int $id
+ * @property int $mall_id
+ * @property int $level
+ * @property string $name
+ * @property string|null $map_svg_path
+ */
 class Floor extends Model
 {
     use BelongsToMall;
