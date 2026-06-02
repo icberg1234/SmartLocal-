@@ -50,6 +50,8 @@ final class ResolveTenant
             return null;
         }
 
-        return Mall::query()->where('subdomain', $sub)->value('id');
+        $id = Mall::query()->where('subdomain', $sub)->value('id');
+
+        return $id !== null ? (int) $id : null;
     }
 }

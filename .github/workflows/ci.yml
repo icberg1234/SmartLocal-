@@ -44,6 +44,7 @@ jobs:
 
       - name: Apply SmartLocal overlay
         run: |
+          mkdir -p app/app/Http/Middleware app/app/Providers app/database/factories app/database/seeders app/tests/Feature
           cp -r overlay/app/Modules app/app/
           cp overlay/app/Http/Middleware/ResolveTenant.php app/app/Http/Middleware/
           cp overlay/app/Providers/ModuleServiceProvider.php app/app/Providers/
