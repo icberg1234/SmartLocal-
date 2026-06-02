@@ -20,4 +20,7 @@ return [
         'silver' => 100,
         'gold' => 300,
     ],
+
+    // Max notifications per user per day (anti-fatigue).
+    'notif_daily_cap' => (int) env('NOTIF_DAILY_CAP', 5),
 ];
