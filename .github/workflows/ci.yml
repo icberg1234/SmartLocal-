@@ -69,6 +69,7 @@ jobs:
           composer require laravel/sanctum spatie/laravel-permission --no-interaction
           composer require --dev pestphp/pest pestphp/pest-plugin-laravel larastan/larastan --no-interaction --with-all-dependencies
           php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider" --no-interaction
+          php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider" --no-interaction
 
       - name: Prepare env
         working-directory: app
