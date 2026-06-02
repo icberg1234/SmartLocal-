@@ -5,22 +5,24 @@ import api from '../api'
 
 const points = ref(0)
 const tier = ref('bronze')
-const stores = ref([])
 const tierFa = { bronze: 'برنزی', silver: 'نقره‌ای', gold: 'طلایی' }
 
-// category_id -> media keywords + intro copy
-const CAT = {
-  1: { kw: 'restaurant,food,kebab', intro: 'غذای اصیل و گرم، سرو در فضایی دنج.' },
-  2: { kw: 'fashion,boutique,clothing', intro: 'جدیدترین کالکشنِ مد و پوشاک.' },
-  3: { kw: 'electronics,gadgets,technology', intro: 'جدیدترین گجت‌ها و لوازمِ دیجیتال.' },
-}
-const cat = (s) => CAT[s.category_id] || { kw: 'shop,store', intro: 'فروشگاهی در پاساژ.' }
-const img = (s) => `https://loremflickr.com/640/420/${cat(s).kw}?lock=${s.id}`
-const onImgErr = (e, s) => { e.target.src = `https://picsum.photos/seed/sl${s.id}/640/420` }
+// Brand stores — tapping a card opens the 3D map and routes to that shop.
+const STORES = [
+  { key: 'hm', name: 'H&M', slug: 'handm', kw: 'fashion,clothing,store', discount: 15, intro: 'مدِ روز با قیمتِ مناسب.' },
+  { key: 'zara', name: 'Zara', slug: 'zara', kw: 'boutique,fashion', discount: 12, intro: 'کالکشنِ روزِ پوشاک.' },
+  { key: 'nike', name: 'Nike', slug: 'nike', kw: 'sneakers,sportswear', discount: 10, intro: 'کفش و پوشاکِ ورزشی.' },
+  { key: 'apple', name: 'Apple', slug: 'apple', kw: 'apple-store,gadgets', discount: 5, intro: 'جدیدترین محصولاتِ اپل.' },
+  { key: 'samsung', name: 'Samsung', slug: 'samsung', kw: 'electronics,smartphone', discount: 8, intro: 'موبایل و لوازمِ دیجیتال.' },
+  { key: 'starbucks', name: 'Starbucks', slug: 'starbucks', kw: 'coffee,cafe', discount: 10, intro: 'قهوه و نوشیدنی.' },
+  { key: 'mcdonalds', name: "McDonald's", slug: 'mcdonalds', kw: 'burger,fastfood', discount: 0, intro: 'فست‌فودِ سریع.' },
+  { key: 'xiaomi', name: 'Xiaomi', slug: 'xiaomi', kw: 'gadgets,smarthome', discount: 7, intro: 'گجت و خانهٔ هوشمند.' },
+]
+const img = (s) => `https://loremflickr.com/640/420/${s.kw}?lock=${s.key}`
+const onImgErr = (e, s) => { e.target.src = `https://picsum.photos/seed/${s.key}/640/420` }
 
 onMounted(async () => {
   try { const { data } = await api.get('/me/points'); points.value = data.balance; tier.value = data.tier } catch (e) { /* guest */ }
-  try { const { data } = await api.get('/stores'); stores.value = data.data || [] } catch (e) { /* ignore */ }
 })
 </script>
 
@@ -51,18 +53,18 @@ onMounted(async () => {
     </div>
 
     <div class="showcase">
-      <article v-for="s in stores" :key="s.id" class="scard">
+      <RouterLink v-for="s in STORES" :key="s.key" class="scard" :to="{ path: '/map', query: { store: s.key } }">
         <div class="scard-media">
           <img :src="img(s)" @error="(e) => onImgErr(e, s)" :alt="s.name" loading="lazy" />
-          <span v-if="s.member_discount_pct" class="scard-badge">{{ s.member_discount_pct }}٪ تخفیفِ عضو</span>
+          <img class="scard-logo" :src="`https://cdn.simpleicons.org/${s.slug}`" :alt="s.name" @error="(e) => (e.target.style.display = 'none')" />
+          <span v-if="s.discount" class="scard-badge">{{ s.discount }}٪ تخفیفِ عضو</span>
         </div>
         <div class="scard-body">
           <b>{{ s.name }}</b>
-          <p>{{ cat(s).intro }}</p>
-          <RouterLink to="/map" class="scard-go">🧭 مسیریابی</RouterLink>
+          <p>{{ s.intro }}</p>
+          <span class="scard-go">🧭 مسیریابی در نقشهٔ سه‌بعدی →</span>
         </div>
-      </article>
-      <div v-if="!stores.length" class="empty">فروشگاهی برای نمایش نیست.</div>
+      </RouterLink>
     </div>
   </section>
 </template>
@@ -81,8 +83,9 @@ onMounted(async () => {
 .sp-cta { align-self: flex-start; background: #fff; color: var(--primary); font-weight: 800; padding: 9px 16px; border-radius: 12px; font-size: 14px; }
 
 .showcase { display: flex; flex-direction: column; gap: 14px; }
-.scard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); }
+.scard { display: block; color: inherit; text-decoration: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); }
 .scard-media { position: relative; height: 168px; overflow: hidden; background: var(--grad); }
+.scard-logo { position: absolute; top: 12px; inset-inline-end: 12px; width: 34px; height: 34px; object-fit: contain; background: #fff; border-radius: 9px; padding: 5px; box-shadow: 0 2px 8px rgba(0,0,0,.22); }
 .scard-media img { width: 100%; height: 100%; object-fit: cover; display: block; animation: kenburns 14s ease-in-out infinite alternate; }
 @keyframes kenburns { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.14) translate(-2%, -2%); } }
 .scard-badge { position: absolute; top: 12px; inset-inline-start: 12px; background: rgba(21,163,74,.95); color: #fff; font-size: 12px; font-weight: 800; padding: 5px 12px; border-radius: 999px; box-shadow: 0 4px 12px rgba(0,0,0,.25); }
