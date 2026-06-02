@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Modules\Auth\Models\Consent;
 use App\Modules\Auth\Models\OtpCode;
 use App\Modules\Auth\Services\Sms\SmsSender;
+use App\Modules\Core\Support\CurrentMall;
 use App\Modules\Core\Support\EventRecorder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -15,15 +16,10 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 final class OtpService
 {
-    private const TTL_SECONDS = 120;
-
-    private const MAX_ATTEMPTS = 3;
-
-    private const LOCK_MINUTES = 10;
-
     public function __construct(
         private readonly SmsSender $sms,
         private readonly EventRecorder $events,
+        private readonly CurrentMall $currentMall,
     ) {}
 
     public function request(string $phone): void
@@ -42,10 +38,12 @@ final class OtpService
             'phone' => $phone,
             'code_hash' => Hash::make($code),
             'attempts' => 0,
-            'expires_at' => now()->addSeconds(self::TTL_SECONDS),
+            'expires_at' => now()->addSeconds((int) config('smartlocal.otp.ttl_seconds', 120)),
         ]);
 
-        $this->sms->send($phone, "کد ورود SmartLocal: {$code}");
+        $brand = (string) $this->currentMall->setting('brand', config('smartlocal.brand', 'SmartLocal'));
+        $template = (string) config('smartlocal.templates.otp_sms', 'کد ورود {brand}: {code}');
+        $this->sms->send($phone, strtr($template, ['{brand}' => $brand, '{code}' => $code]));
     }
 
     /**
@@ -67,8 +65,8 @@ final class OtpService
 
         if (! Hash::check($code, $otp->code_hash)) {
             $otp->attempts++;
-            if ($otp->attempts >= self::MAX_ATTEMPTS) {
-                $otp->locked_until = now()->addMinutes(self::LOCK_MINUTES);
+            if ($otp->attempts >= (int) config('smartlocal.otp.max_attempts', 3)) {
+                $otp->locked_until = now()->addMinutes((int) config('smartlocal.otp.lock_minutes', 10));
             }
             $otp->save();
             $this->fail('کد نادرست است.');

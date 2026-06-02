@@ -30,6 +30,11 @@ final class FestivalService
             'status' => 'active',
         ]);
 
+        $invite = strtr(
+            (string) config('smartlocal.templates.festival_invite', 'دعوت به جشنواره {title}'),
+            ['{title}' => (string) $festival->title],
+        );
+
         foreach ($data['store_ids'] as $storeId) {
             FestivalStore::query()->create([
                 'festival_id' => $festival->id,
@@ -42,7 +47,7 @@ final class FestivalService
                 $owner = User::query()->find($store->owner_id);
                 if ($owner !== null) {
                     // Transactional invite — not gated by marketing consent.
-                    $this->notifications->notify($owner, (int) $festival->mall_id, "دعوت به جشنواره {$festival->title}", (int) $festival->id, requireConsent: false);
+                    $this->notifications->notify($owner, (int) $festival->mall_id, $invite, (int) $festival->id, requireConsent: false);
                 }
             }
         }
@@ -82,9 +87,14 @@ final class FestivalService
                 ->pluck('user_id')
                 ->unique();
 
+            $message = strtr(
+                (string) config('smartlocal.templates.festival_started', 'جشنواره {title} شروع شد!'),
+                ['{title}' => (string) $festival->title],
+            );
+
             foreach ($userIds as $userId) {
                 $user = User::query()->find($userId);
-                if ($user !== null && $this->notifications->notify($user, (int) $festival->mall_id, "جشنواره {$festival->title} شروع شد!", (int) $festival->id)) {
+                if ($user !== null && $this->notifications->notify($user, (int) $festival->mall_id, $message, (int) $festival->id)) {
                     $sent++;
                 }
             }

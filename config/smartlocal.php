@@ -26,4 +26,24 @@ return [
 
     // Free-parking lottery win chance (percent) on reservation.
     'parking_lottery_pct' => (int) env('PARKING_LOTTERY_PCT', 0),
+
+    // OTP (login) parameters — tunable security base data.
+    'otp' => [
+        'ttl_seconds' => (int) env('OTP_TTL_SECONDS', 120),
+        'max_attempts' => (int) env('OTP_MAX_ATTEMPTS', 3),
+        'lock_minutes' => (int) env('OTP_LOCK_MINUTES', 10),
+    ],
+
+    // Platform brand (per-mall override: malls.settings → 'brand').
+    'brand' => env('APP_BRAND', 'SmartLocal'),
+
+    // Message templates. Placeholders in {braces}: {brand}, {code}, {title}.
+    'templates' => [
+        'otp_sms' => env('TPL_OTP_SMS', 'کد ورود {brand}: {code}'),
+        'festival_invite' => 'دعوت به جشنواره {title}',
+        'festival_started' => 'جشنواره {title} شروع شد!',
+    ],
+
+    // Allowed venue types (reference data).
+    'venue_types' => ['mall', 'car-market', 'food-market', 'bazaar'],
 ];

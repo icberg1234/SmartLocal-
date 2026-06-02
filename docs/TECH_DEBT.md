@@ -25,7 +25,9 @@
 | **سرویسِ پیامک + درگاهِ پرداخت، per-mall** | ✅ افزوده شد — `CurrentMall::setting()` نوعِ درایور و کلیدِ هر پاساژ را از `malls.settings` می‌خواند؛ fallback به configِ سراسری (تستِ `ProviderResolutionTest`) |
 | CRUDِ ادمین برای اطلاعات پایه | موکول — به پنلِ ادمینِ Inertia گره خورده (الان فقط seeder/مهاجرت) |
 | رمزنگاریِ سکرت‌ها در `settings` | 🟠 باز — کلیدِ APIِ هر پاساژ فعلاً plaintext در JSON؛ باید `encrypted:array` شود (نیازمندِ ستونِ `text` به‌جای `json`) |
-| قالبِ نوتیفیکیشن (template) | موکول — پیام‌ها هاردکدن |
+| قالبِ پیام (OTP/جشنواره) + برند | ✅ افزوده شد — `config('smartlocal.templates.*')` با placeholderِ `{brand}/{code}/{title}`؛ برندِ per-mall از `settings` (تستِ `BaseDataConfigTest`) |
+| پارامترهای OTP (TTL/تلاش/قفل) | ✅ از ثابتِ هاردکد به `config('smartlocal.otp.*')` منتقل شد |
+| انواعِ Venue (mall/bازار/...) | ✅ `config('smartlocal.venue_types')` به‌عنوان داده‌ی مرجع |
 
 ## موکول‌شده طبق فازبندی
 - Permissions دانه‌ریز (فعلاً فقط Role)
