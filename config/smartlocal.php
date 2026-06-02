@@ -11,4 +11,13 @@ return [
 
     // Max redemptions per customer per store per day (anti-fraud velocity).
     'redeem_velocity_per_day' => (int) env('REDEEM_VELOCITY_PER_DAY', 3),
+
+    // Loyalty points expiry (days).
+    'points_ttl_days' => (int) env('POINTS_TTL_DAYS', 180),
+
+    // Tier thresholds (mall-wide points balance).
+    'tiers' => [
+        'silver' => 100,
+        'gold' => 300,
+    ],
 ];

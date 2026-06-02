@@ -7,8 +7,6 @@ namespace App\Modules\Redemption\Services;
 use App\Models\User;
 use App\Modules\BusinessUnits\Models\Store;
 use App\Modules\Core\Support\EventRecorder;
-use App\Modules\Redemption\Models\CustomerProfile;
-use App\Modules\Redemption\Models\PointsLedger;
 use App\Modules\Redemption\Models\Redemption;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -17,6 +15,8 @@ final class RedemptionService
 {
     public function __construct(
         private readonly RedeemTokenService $tokens,
+        private readonly PointsService $points,
+        private readonly CrmService $crm,
         private readonly EventRecorder $events,
     ) {}
 
@@ -68,22 +68,8 @@ final class RedemptionService
                 'points_awarded' => $points,
             ]);
 
-            PointsLedger::query()->create([
-                'mall_id' => $store->mall_id,
-                'user_id' => $user->id,
-                'delta' => $points,
-                'reason' => 'redemption',
-                'redemption_id' => $redemption->id,
-            ]);
-
-            $profile = CustomerProfile::query()->firstOrNew(
-                ['user_id' => $user->id, 'mall_id' => $store->mall_id],
-                ['visit_count' => 0, 'total_spent' => 0],
-            );
-            $profile->visit_count += 1;
-            $profile->total_spent += $final;
-            $profile->last_visit_at = now();
-            $profile->save();
+            $this->points->accrue($user, (int) $store->mall_id, $points, (int) $redemption->id);
+            $this->crm->recordVisit($user, (int) $store->mall_id, $final);
 
             $this->events->record('RedemptionCompleted', [
                 'store_id' => $store->id,
