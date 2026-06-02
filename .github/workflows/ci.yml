@@ -55,8 +55,7 @@ jobs:
           cp overlay/config/auth.php app/config/auth.php
           cp overlay/config/services.php app/config/services.php
           cp overlay/database/factories/MallFactory.php app/database/factories/
-          cp overlay/database/seeders/DatabaseSeeder.php app/database/seeders/
-          cp overlay/database/seeders/RolesSeeder.php app/database/seeders/
+          cp overlay/database/seeders/*.php app/database/seeders/
           cp overlay/tests/Pest.php app/tests/Pest.php
           cp overlay/tests/Feature/*.php app/tests/Feature/
           cp overlay/phpstan.neon app/phpstan.neon
