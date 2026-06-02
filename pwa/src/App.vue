@@ -13,6 +13,7 @@ const auth = useAuth()
         <RouterLink v-if="auth.isAuthed" to="/home">خانه</RouterLink>
         <RouterLink v-if="auth.isAuthed" to="/my-qr">کد تخفیف</RouterLink>
         <RouterLink v-else to="/login">ورود</RouterLink>
+        <RouterLink to="/admin">پنل مدیریت</RouterLink>
       </nav>
     </header>
     <main class="content">
