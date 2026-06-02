@@ -3,7 +3,7 @@
 سامانه‌ی بازاریابیِ محلیِ پاساژها: مشتری با QR وارد می‌شود، عضو می‌شود، سرِ صندوق تخفیفِ عضو + امتیازِ کل‌پاساژ می‌گیرد، فروشگاه‌ها را فالو می‌کند و نوتیفِ جشنواره دریافت می‌کند. Laravel 11 (Modular Monolith، API-first، event-sourced core) + PWA مشتری (Vue 3).
 
 ## وضعیت
-**MVP بک‌اند + PWA مشتری — هر ۹ فاز (۰–۸) ساخته و CI-سبز** (~۴۴ تستِ بک‌اند + تستِ فرانت).
+**MVP بک‌اند + PWA مشتری — هر ۹ فاز (۰–۸) + لایه‌ی اطلاعات پایه، ساخته و CI-سبز** (~۴۷ تستِ بک‌اند + تستِ فرانت).
 
 | فاز | محتوا |
 |---|---|
@@ -21,6 +21,7 @@
 - **Modular Monolith:** `app/Modules/{Core,Auth,BusinessUnits,Redemption,Festival,Venue,Analytics}` — هر ماژول routes/migrations خودکار (ModuleServiceProvider).
 - **چندمستأجری:** `mall_id` + Global Scope (`BelongsToMall`) + middleware `ResolveTenant` (هدر `X-Mall-Id`).
 - **Event Store:** هر اکشن مهم → `events` (immutable، CDP-ready).
+- **اطلاعات پایه:** `plans` (پکیج‌ها، master؛ `subscriptions.plan_id`) + `categories`/`roles` سیدشده + accessorِ `Mall::setting()` برای کانفیگِ هر پاساژ؛ کاتالوگِ عمومیِ `GET /api/v1/plans`.
 - **هسته‌ی پولی:** «ریلِ Redemption» — QR داینامیکِ رمزنگاری‌شده → تخفیف + امتیاز + پروفایل + رویداد، در یک تراکنش اتمیک.
 
 ## راه‌اندازی

@@ -13,8 +13,18 @@
 | # | مورد | توضیح |
 |---|---|---|
 | D4 | Pint روی auto-fix نه `--test` | گِیتِ استایل enforce نمی‌شود. بعد از داشتن محیط PHP، به `--test` برگردد. |
-| D5 | PHPStan level 5 نه max | برنامه ratchet: 5 → 8 → max. |
+| D5 | PHPStan level 6 نه max | برنامه ratchet: 6 → 8 → max. |
 | D6 | ریپو overlay + CIِ self-assembling | یک `composer create-project` یک‌باره روی PHP env آن را vanilla می‌کند. |
+
+## اطلاعات پایه (Master / Base Data)
+| مورد | وضعیت |
+|---|---|
+| Malls · Floors · Categories · Roles · Parking | ✅ seed می‌شوند (RolesSeeder/CategoriesSeeder/DatabaseSeeder) |
+| **`plans` (پکیج‌ها)** | ✅ افزوده شد — مطابقِ `Technical_Architecture` (جدولِ plans + `subscriptions.plan_id`)؛ سیدرِ silver/gold؛ endpoint عمومیِ `GET /api/v1/plans` |
+| تنظیماتِ هر پاساژ (`malls.settings`) | ✅ ستون + accessorِ `Mall::setting()` — مبنای کانفیگِ per-mall (درگاه/فیچرفلگ/ارز/ساعات) |
+| CRUDِ ادمین برای اطلاعات پایه | موکول — به پنلِ ادمینِ Inertia گره خورده (الان فقط seeder/مهاجرت) |
+| درگاهِ پرداختِ per-mall (سوار بر settings) | موکول — درایور فعلاً سراسری است (config) |
+| قالبِ نوتیفیکیشن (template) | موکول — پیام‌ها هاردکدن |
 
 ## موکول‌شده طبق فازبندی
 - Permissions دانه‌ریز (فعلاً فقط Role)
