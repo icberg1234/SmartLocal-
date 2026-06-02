@@ -43,14 +43,13 @@ final class ResolveTenant
 
     private function fromSubdomain(Request $request): ?int
     {
-        $host = $request->getHost();
-        $sub = explode('.', $host)[0] ?? null;
+        $parts = explode('.', $request->getHost());
 
-        if ($sub === null || $sub === '') {
-            return null;
+        if (count($parts) < 2) {
+            return null; // no subdomain (e.g. localhost / bare host)
         }
 
-        $id = Mall::query()->where('subdomain', $sub)->value('id');
+        $id = Mall::query()->where('subdomain', $parts[0])->value('id');
 
         return $id !== null ? (int) $id : null;
     }

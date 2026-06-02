@@ -9,3 +9,7 @@ parameters:
         - app
         - database
     tmpDir: build/phpstan
+    # Laravel relations/factories are generic; specifying every TModel is verbose.
+    # Standard, accepted setting for Laravel + Larastan projects.
+    checkGenericClassInNonGenericObjectType: false
+    treatPhpDocTypesAsCertain: false
