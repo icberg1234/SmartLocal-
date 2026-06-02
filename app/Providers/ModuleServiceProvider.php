@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Modules\Auth\Services\Sms\FakeSmsSender;
+use App\Modules\Auth\Services\Sms\KavenegarSmsSender;
+use App\Modules\Auth\Services\Sms\SmsSender;
 use App\Modules\Core\Support\CurrentMall;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -18,6 +21,14 @@ final class ModuleServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(CurrentMall::class);
+
+        $this->app->bind(SmsSender::class, function (): SmsSender {
+            if (env('SMS_DRIVER', 'fake') === 'kavenegar') {
+                return new KavenegarSmsSender((string) env('KAVENEGAR_API_KEY', ''));
+            }
+
+            return new FakeSmsSender();
+        });
     }
 
     public function boot(): void

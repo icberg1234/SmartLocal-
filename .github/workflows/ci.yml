@@ -51,17 +51,23 @@ jobs:
           cp overlay/bootstrap/app.php app/bootstrap/app.php
           cp overlay/bootstrap/providers.php app/bootstrap/providers.php
           cp overlay/routes/api.php app/routes/api.php
+          cp overlay/app/Models/User.php app/app/Models/
+          cp overlay/config/auth.php app/config/auth.php
           cp overlay/database/factories/MallFactory.php app/database/factories/
           cp overlay/database/seeders/DatabaseSeeder.php app/database/seeders/
+          cp overlay/database/seeders/RolesSeeder.php app/database/seeders/
           cp overlay/tests/Pest.php app/tests/Pest.php
-          cp overlay/tests/Feature/Phase0FoundationTest.php app/tests/Feature/
+          cp overlay/tests/Feature/*.php app/tests/Feature/
           cp overlay/phpstan.neon app/phpstan.neon
           cp overlay/pint.json app/pint.json
           cp overlay/.env.example app/.env.example
 
-      - name: Install dev tooling (pest + larastan)
+      - name: Install packages (sanctum, spatie, pest, larastan)
         working-directory: app
-        run: composer require --dev pestphp/pest pestphp/pest-plugin-laravel larastan/larastan --no-interaction --with-all-dependencies
+        run: |
+          composer require laravel/sanctum spatie/laravel-permission --no-interaction
+          composer require --dev pestphp/pest pestphp/pest-plugin-laravel larastan/larastan --no-interaction --with-all-dependencies
+          php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider" --no-interaction
 
       - name: Prepare env
         working-directory: app
@@ -76,7 +82,7 @@ jobs:
       # TODO(ratchet): switch back to `pint --test` once formatted on a PHP env.
       - name: Pint (auto-format our code)
         working-directory: app
-        run: vendor/bin/pint app/Modules app/Http/Middleware app/Providers/ModuleServiceProvider.php tests
+        run: vendor/bin/pint app/Modules app/Models app/Http/Middleware app/Providers/ModuleServiceProvider.php tests
 
       - name: PHPStan (larastan, level 6)
         working-directory: app
