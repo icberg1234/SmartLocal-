@@ -31,15 +31,16 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        $silver = Plan::query()->where('key', 'silver')->first();
+        /** @var Plan $silver */
+        $silver = Plan::query()->where('key', 'silver')->firstOrFail();
         Subscription::query()->create([
             'mall_id' => $mall->id,
-            'plan' => $silver?->key ?? 'silver',
-            'plan_id' => $silver?->id,
-            'store_quota' => $silver?->store_quota ?? 50,
+            'plan' => $silver->key,
+            'plan_id' => $silver->id,
+            'store_quota' => $silver->store_quota,
             'status' => 'active',
             'starts_at' => now(),
-            'ends_at' => now()->addDays((int) ($silver?->duration_days ?? 180)),
+            'ends_at' => now()->addDays($silver->duration_days),
         ]);
 
         ParkingLot::query()->create([
