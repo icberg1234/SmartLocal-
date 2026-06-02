@@ -46,39 +46,52 @@ async function save() {
 
 <template>
   <section>
-    <h2>تنظیمات پاساژ</h2>
+    <h1 class="h-title">تنظیمات پاساژ</h1>
+    <p class="sub">برند و سرویس‌های اختصاصیِ پاساژت را اینجا تنظیم کن.</p>
 
-    <label>برند (در پیامکِ ورود نمایش داده می‌شود)</label>
-    <input v-model="form.brand" placeholder="مثلاً پاساژ الماس" />
+    <div class="card">
+      <div class="field" style="margin-bottom:0">
+        <label>برند (در پیامکِ ورود نمایش داده می‌شود)</label>
+        <input class="input" v-model="form.brand" placeholder="مثلاً پاساژ الماس" />
+      </div>
+    </div>
 
-    <h3>پیامک (کدِ ورود)</h3>
-    <label>درایور</label>
-    <select v-model="form.sms.driver">
-      <option value="fake">آزمایشی (fake)</option>
-      <option value="kavenegar">کاوه‌نگار</option>
-    </select>
-    <label>کلید API <small v-if="smsKeySet">(تنظیم‌شده — برای حفظ، خالی بگذارید)</small></label>
-    <input v-model="form.sms.kavenegar_key" :placeholder="smsKeySet ? '••••••••' : 'کلید کاوه‌نگار'" />
+    <div class="card">
+      <h3 class="card-h">📩 پیامک (کدِ ورود)</h3>
+      <div class="field">
+        <label>سرویس‌دهنده</label>
+        <select class="input" v-model="form.sms.driver">
+          <option value="fake">آزمایشی (fake)</option>
+          <option value="kavenegar">کاوه‌نگار</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>کلید API <small v-if="smsKeySet">(تنظیم‌شده — برای حفظ، خالی بگذار)</small></label>
+        <input class="input" v-model="form.sms.kavenegar_key" :placeholder="smsKeySet ? '••••••••' : 'کلید کاوه‌نگار'" dir="ltr" />
+      </div>
+    </div>
 
-    <h3>درگاه پرداخت</h3>
-    <label>درایور</label>
-    <select v-model="form.payment.driver">
-      <option value="fake">آزمایشی (fake)</option>
-      <option value="zarinpal">زرین‌پال</option>
-    </select>
-    <label>مرچنت <small v-if="merchantSet">(تنظیم‌شده)</small></label>
-    <input v-model="form.payment.zarinpal_merchant" :placeholder="merchantSet ? '••••••••' : 'کد مرچنت زرین‌پال'" />
+    <div class="card">
+      <h3 class="card-h">💳 درگاه پرداخت</h3>
+      <div class="field">
+        <label>سرویس‌دهنده</label>
+        <select class="input" v-model="form.payment.driver">
+          <option value="fake">آزمایشی (fake)</option>
+          <option value="zarinpal">زرین‌پال</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>مرچنت <small v-if="merchantSet">(تنظیم‌شده)</small></label>
+        <input class="input" v-model="form.payment.zarinpal_merchant" :placeholder="merchantSet ? '••••••••' : 'کد مرچنت زرین‌پال'" dir="ltr" />
+      </div>
+    </div>
 
-    <button @click="save" style="margin-top:18px">ذخیره</button>
-    <p v-if="msg" style="color:#2e7d32">{{ msg }}</p>
-    <p v-if="error" class="err">{{ error }}</p>
+    <button class="btn btn--block" style="margin-top:18px" @click="save">ذخیره تغییرات</button>
+    <p v-if="msg" class="ok">{{ msg }}</p>
+    <p v-if="error" class="error">{{ error }}</p>
   </section>
 </template>
 
 <style scoped>
-label { display:block; margin:12px 0 4px; font-size:14px; color:#444; }
-small { color:#888; }
-select { padding:10px; border:1px solid #ccc; border-radius:8px; width:100%; box-sizing:border-box; background:#fff; }
-h3 { margin-top:20px; color:#1565C0; }
-.err { color:#c62828; }
+.card-h { font-size: 16px; margin-bottom: 14px; color: var(--text); }
 </style>

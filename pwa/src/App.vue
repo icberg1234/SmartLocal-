@@ -1,33 +1,32 @@
 <script setup>
-import { RouterView, RouterLink } from 'vue-router'
+import { RouterView, RouterLink, useRouter } from 'vue-router'
 import { useAuth } from './stores/auth'
 
 const auth = useAuth()
+const router = useRouter()
+
+function logout() {
+  auth.logout()
+  router.push('/')
+}
 </script>
 
 <template>
   <div class="app" dir="rtl">
-    <header class="bar">
+    <header class="topbar">
       <RouterLink to="/" class="brand">SmartLocal</RouterLink>
-      <nav>
-        <RouterLink v-if="auth.isAuthed" to="/home">خانه</RouterLink>
-        <RouterLink v-if="auth.isAuthed" to="/my-qr">کد تخفیف</RouterLink>
-        <RouterLink v-else to="/login">ورود</RouterLink>
-        <RouterLink to="/admin">پنل مدیریت</RouterLink>
-      </nav>
+      <button v-if="auth.isAuthed" class="chip" @click="logout">خروج</button>
+      <RouterLink v-else to="/login" class="chip">ورود</RouterLink>
     </header>
+
     <main class="content">
       <RouterView />
     </main>
+
+    <nav class="bottomnav">
+      <RouterLink to="/home"><span class="ic">🏠</span><span>خانه</span></RouterLink>
+      <RouterLink to="/my-qr"><span class="ic">🎟️</span><span>کد تخفیف</span></RouterLink>
+      <RouterLink to="/admin"><span class="ic">🧑‍💼</span><span>پنل</span></RouterLink>
+    </nav>
   </div>
 </template>
-
-<style>
-body { margin: 0; font-family: Tahoma, sans-serif; background: #f4f6f8; }
-.bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #1565C0; color: #fff; }
-.brand { color: #fff; text-decoration: none; font-weight: bold; }
-.bar nav a { color: #fff; margin-inline-start: 12px; text-decoration: none; }
-.content { padding: 16px; max-width: 680px; margin: 0 auto; }
-button { background: #1565C0; color: #fff; border: 0; padding: 10px 16px; border-radius: 8px; font: inherit; }
-input { padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%; box-sizing: border-box; }
-</style>

@@ -1,10 +1,13 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
 import api from '../api'
 
 const points = ref(0)
 const tier = ref('bronze')
 const stores = ref([])
+
+const tierFa = { bronze: 'برنزی', silver: 'نقره‌ای', gold: 'طلایی' }
 
 onMounted(async () => {
   try {
@@ -22,21 +25,33 @@ onMounted(async () => {
 
 <template>
   <section>
-    <div class="card">
-      <strong>{{ points }}</strong> امتیاز · سطح: {{ tier }}
+    <div class="points">
+      <span class="plabel">امتیازِ کلِ پاساژ</span>
+      <div class="pval">{{ Number(points).toLocaleString() }}</div>
+      <span class="ptier">سطح: {{ tierFa[tier] || tier }}</span>
     </div>
-    <h3>فروشگاه‌ها</h3>
-    <ul class="stores">
-      <li v-for="s in stores" :key="s.id" class="store">
-        {{ s.name }} <span v-if="s.member_discount_pct">— {{ s.member_discount_pct }}٪ تخفیف عضو</span>
-      </li>
-      <li v-if="!stores.length">فروشگاهی یافت نشد.</li>
-    </ul>
+
+    <div class="section-title">
+      <h3>فروشگاه‌ها</h3>
+      <RouterLink class="link" to="/my-qr">کد تخفیف →</RouterLink>
+    </div>
+
+    <div class="list">
+      <div v-for="s in stores" :key="s.id" class="row-item">
+        <div class="ava">🏬</div>
+        <div class="body">
+          <b>{{ s.name }}</b>
+          <span v-if="s.member_discount_pct" class="badge">{{ s.member_discount_pct }}٪ تخفیفِ عضو</span>
+        </div>
+      </div>
+      <div v-if="!stores.length" class="empty">فروشگاهی برای نمایش نیست.</div>
+    </div>
   </section>
 </template>
 
 <style scoped>
-.card { background:#fff; border-radius:10px; padding:14px; box-shadow:0 1px 4px rgba(0,0,0,.08); margin-bottom:16px; }
-.stores { list-style:none; padding:0; }
-.store { background:#fff; border-radius:8px; padding:10px; margin-bottom:8px; }
+.points { background: var(--grad); color: #fff; border-radius: var(--radius); padding: 24px; text-align: center; box-shadow: var(--shadow-primary); margin-bottom: 20px; }
+.plabel { font-size: 13px; color: rgba(255, 255, 255, .85); }
+.pval { font-size: 44px; font-weight: 800; line-height: 1.1; margin: 4px 0; }
+.ptier { font-size: 14px; color: rgba(255, 255, 255, .92); }
 </style>

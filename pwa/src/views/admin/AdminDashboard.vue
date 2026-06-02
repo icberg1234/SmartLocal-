@@ -18,30 +18,21 @@ onMounted(async () => {
 
 <template>
   <section>
-    <h2>داشبورد مدیر پاساژ</h2>
+    <h1 class="h-title">داشبورد مدیر</h1>
+    <p class="sub">وضعیتِ پکیج و سهمیه‌ی پاساژِ شما.</p>
 
-    <div class="grid">
-      <div class="card"><span>پکیج</span><strong>{{ overview?.plan || '—' }}</strong></div>
-      <div class="card"><span>سهمیه فروشگاه</span><strong>{{ overview?.quota ?? '—' }}</strong></div>
-      <div class="card"><span>مصرف‌شده</span><strong>{{ overview?.stores_used ?? '—' }}</strong></div>
-      <div class="card"><span>باقی‌مانده</span><strong>{{ overview?.stores_remaining ?? '—' }}</strong></div>
+    <div class="stats">
+      <div class="stat"><span class="lbl">پکیج</span><span class="val">{{ overview?.plan || '—' }}</span></div>
+      <div class="stat"><span class="lbl">سهمیه فروشگاه</span><span class="val">{{ overview?.quota ?? '—' }}</span></div>
+      <div class="stat"><span class="lbl">مصرف‌شده</span><span class="val">{{ overview?.stores_used ?? '—' }}</span></div>
+      <div class="stat"><span class="lbl">باقی‌مانده</span><span class="val">{{ overview?.stores_remaining ?? '—' }}</span></div>
     </div>
 
-    <nav class="links">
-      <RouterLink to="/admin/settings">⚙️ تنظیمات پاساژ (درگاه / پیامک / برند)</RouterLink>
-      <RouterLink to="/admin/plans">📦 مدیریت پکیج‌ها</RouterLink>
-    </nav>
+    <div class="menu">
+      <RouterLink to="/admin/settings"><span class="ic">⚙️</span><span>تنظیمات پاساژ (درگاه / پیامک / برند)</span><span class="arrow">‹</span></RouterLink>
+      <RouterLink to="/admin/plans"><span class="ic">📦</span><span>مدیریت پکیج‌ها</span><span class="arrow">‹</span></RouterLink>
+    </div>
 
-    <p v-if="error" class="err">{{ error }}</p>
+    <p v-if="error" class="error">{{ error }}</p>
   </section>
 </template>
-
-<style scoped>
-.grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
-.card { background:#fff; border-radius:10px; padding:14px; box-shadow:0 1px 4px rgba(0,0,0,.08); display:flex; flex-direction:column; gap:6px; }
-.card span { color:#666; font-size:13px; }
-.card strong { font-size:22px; color:#1565C0; }
-.links { display:flex; flex-direction:column; gap:10px; }
-.links a { background:#fff; border-radius:8px; padding:12px; text-decoration:none; color:#1565C0; box-shadow:0 1px 4px rgba(0,0,0,.08); }
-.err { color:#c62828; margin-top:12px; }
-</style>

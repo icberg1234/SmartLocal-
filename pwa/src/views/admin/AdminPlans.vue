@@ -32,32 +32,37 @@ async function create() {
 
 <template>
   <section>
-    <h2>مدیریت پکیج‌ها</h2>
+    <h1 class="h-title">مدیریت پکیج‌ها</h1>
+    <p class="sub">پکیج‌های قابلِ‌فروش به مدیرانِ پاساژ.</p>
 
-    <ul class="plans">
-      <li v-for="p in plans" :key="p.key" class="plan">
-        <strong>{{ p.name }}</strong> — {{ p.store_quota }} فروشگاه · {{ p.duration_days }} روز ·
-        {{ Number(p.price).toLocaleString() }} تومان
-      </li>
-      <li v-if="!plans.length" class="plan">پکیجی یافت نشد.</li>
-    </ul>
+    <div class="list">
+      <div v-for="p in plans" :key="p.key" class="row-item">
+        <div class="ava">📦</div>
+        <div class="body">
+          <b>{{ p.name }}</b>
+          <span class="muted" style="font-size:13px">{{ p.store_quota }} فروشگاه · {{ p.duration_days }} روز · {{ Number(p.price).toLocaleString() }} تومان</span>
+        </div>
+      </div>
+      <div v-if="!plans.length" class="empty">پکیجی یافت نشد.</div>
+    </div>
 
-    <h3>پکیجِ جدید (سوپرادمین)</h3>
-    <input v-model="form.key" placeholder="کلید (مثلاً platinum)" />
-    <input v-model="form.name" placeholder="نام نمایشی" style="margin-top:8px" />
-    <input v-model.number="form.price" type="number" placeholder="قیمت (تومان)" style="margin-top:8px" />
-    <input v-model.number="form.store_quota" type="number" placeholder="سهمیه فروشگاه" style="margin-top:8px" />
-    <input v-model.number="form.duration_days" type="number" placeholder="مدت (روز)" style="margin-top:8px" />
-    <button @click="create" style="margin-top:12px">ساخت پکیج</button>
-
-    <p v-if="msg" style="color:#2e7d32">{{ msg }}</p>
-    <p v-if="error" class="err">{{ error }}</p>
+    <div class="card" style="margin-top:18px">
+      <h3 class="card-h">پکیجِ جدید <small class="muted">(سوپرادمین)</small></h3>
+      <div class="field"><label>کلید</label><input class="input" v-model="form.key" placeholder="platinum" dir="ltr" /></div>
+      <div class="field"><label>نام نمایشی</label><input class="input" v-model="form.name" placeholder="پکیج پلاتینیوم" /></div>
+      <div class="grid2">
+        <div class="field"><label>قیمت (تومان)</label><input class="input" v-model.number="form.price" type="number" dir="ltr" /></div>
+        <div class="field"><label>سهمیه فروشگاه</label><input class="input" v-model.number="form.store_quota" type="number" dir="ltr" /></div>
+      </div>
+      <div class="field"><label>مدت (روز)</label><input class="input" v-model.number="form.duration_days" type="number" dir="ltr" /></div>
+      <button class="btn btn--block" @click="create">ساختِ پکیج</button>
+      <p v-if="msg" class="ok">{{ msg }}</p>
+      <p v-if="error" class="error">{{ error }}</p>
+    </div>
   </section>
 </template>
 
 <style scoped>
-.plans { list-style:none; padding:0; margin-bottom:8px; }
-.plan { background:#fff; border-radius:8px; padding:12px; margin-bottom:8px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
-h3 { margin-top:20px; color:#1565C0; }
-.err { color:#c62828; }
+.card-h { font-size: 16px; margin-bottom: 14px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 </style>
