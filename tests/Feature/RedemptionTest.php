@@ -62,7 +62,7 @@ it('applies the member discount, awards mall-wide points, and records the visit'
         ->assertJsonPath('data.points_awarded', 17);
 
     expect(Redemption::query()->count())->toBe(1)
-        ->and(PointsLedger::query()->where('user_id', $this->customer->id)->sum('delta'))->toBe(17)
+        ->and((int) PointsLedger::query()->where('user_id', $this->customer->id)->sum('delta'))->toBe(17)
         ->and(CustomerProfile::query()->where('user_id', $this->customer->id)->first()->total_spent)->toBe(1_700_000);
 });
 
