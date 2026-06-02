@@ -1,0 +1,11 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    # Start at 6 so the Phase-0 gate is realistically green on a fresh Laravel app.
+    # Ratchet plan: 6 (MVP start) -> 8 -> max as tech-debt is paid down per phase.
+    level: 6
+    paths:
+        - app
+        - database
+    tmpDir: build/phpstan
