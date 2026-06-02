@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('type')->default('mall'); // mall | car-market | food-market ...
             $table->string('subdomain')->nullable()->unique();
-            $table->json('settings')->nullable();
+            $table->text('settings')->nullable(); // encrypted:array (holds provider secrets)
             $table->timestamps();
         });
     }

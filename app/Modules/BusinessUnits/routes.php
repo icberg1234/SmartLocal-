@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Modules\BusinessUnits\Http\Controllers\Admin\OverviewController;
 use App\Modules\BusinessUnits\Http\Controllers\ProductController;
 use App\Modules\BusinessUnits\Http\Controllers\StoreController;
 use App\Modules\BusinessUnits\Http\Controllers\StoreDiscountController;
@@ -23,4 +24,5 @@ Route::middleware('auth:sanctum')->group(function (): void {
 // Mall manager.
 Route::middleware(['auth:sanctum', 'role:mall-manager'])->group(function (): void {
     Route::post('/mall/whitelist', [WhitelistController::class, 'store']);
+    Route::get('/admin/overview', [OverviewController::class, 'show']);
 });

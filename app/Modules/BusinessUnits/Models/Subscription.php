@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $plan_id
  * @property int $store_quota
  * @property string $status
+ * @property \Illuminate\Support\Carbon|null $starts_at
+ * @property \Illuminate\Support\Carbon|null $ends_at
  * @property-read \App\Modules\Core\Models\Plan|null $package
  */
 class Subscription extends Model

@@ -25,7 +25,7 @@ class Mall extends Model
 
     protected $fillable = ['name', 'type', 'subdomain', 'settings'];
 
-    protected $casts = ['settings' => 'array'];
+    protected $casts = ['settings' => 'encrypted:array'];
 
     public function floors(): HasMany
     {
