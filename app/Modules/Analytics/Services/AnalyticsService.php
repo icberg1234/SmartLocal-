@@ -42,14 +42,15 @@ final class AnalyticsService
     /** Active Redeeming Stores — MVP floor: stores with >=4 redemptions in the window. */
     public function activeRedeemingStores(int $mallId, int $floor = 4): int
     {
-        return Redemption::query()->withoutGlobalScopes()
+        $groups = Redemption::query()->withoutGlobalScopes()
             ->where('mall_id', $mallId)
             ->where('created_at', '>=', $this->since())
             ->selectRaw('store_id, COUNT(*) as c')
             ->groupBy('store_id')
             ->havingRaw('COUNT(*) >= ?', [$floor])
-            ->get()
-            ->count();
+            ->get();
+
+        return count($groups);
     }
 
     /** Repeat-redemption rate: % of redeemers with >=2 redemptions in the window. */
