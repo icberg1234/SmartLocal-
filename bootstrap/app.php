@@ -20,10 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ResolveTenant::class,
         ]);
 
-        $middleware->alias([
-            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
-            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
-        ]);
+        // RBAC aliases (role/permission) are registered in Phase 1 with spatie/laravel-permission.
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

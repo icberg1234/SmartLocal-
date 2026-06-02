@@ -5,8 +5,11 @@ on:
     branches: [main, develop]
   pull_request:
 
+# This repo holds the SmartLocal *module overlay* (custom code), not a full Laravel
+# app. CI scaffolds a fresh Laravel 11 app, applies the overlay, and runs the gate.
+# (A vanilla `composer create-project` once on a PHP env converts it to a normal repo.)
 jobs:
-  build:
+  gate:
     runs-on: ubuntu-latest
 
     services:
@@ -24,19 +27,43 @@ jobs:
         ports: ['6379:6379']
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout overlay
+        uses: actions/checkout@v4
+        with:
+          path: overlay
 
-      - name: Setup PHP
+      - name: Setup PHP 8.3
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: pdo_mysql, redis, bcmath, intl, gd
+          extensions: pdo_mysql, redis, bcmath, intl
           coverage: none
 
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Scaffold fresh Laravel 11
+        run: composer create-project laravel/laravel:^11 app --no-interaction --prefer-dist
 
-      - name: Prepare app
+      - name: Apply SmartLocal overlay
+        run: |
+          cp -r overlay/app/Modules app/app/
+          cp overlay/app/Http/Middleware/ResolveTenant.php app/app/Http/Middleware/
+          cp overlay/app/Providers/ModuleServiceProvider.php app/app/Providers/
+          cp overlay/bootstrap/app.php app/bootstrap/app.php
+          cp overlay/bootstrap/providers.php app/bootstrap/providers.php
+          cp overlay/routes/api.php app/routes/api.php
+          cp overlay/database/factories/MallFactory.php app/database/factories/
+          cp overlay/database/seeders/DatabaseSeeder.php app/database/seeders/
+          cp overlay/tests/Pest.php app/tests/Pest.php
+          cp overlay/tests/Feature/Phase0FoundationTest.php app/tests/Feature/
+          cp overlay/phpstan.neon app/phpstan.neon
+          cp overlay/pint.json app/pint.json
+          cp overlay/.env.example app/.env.example
+
+      - name: Install dev tooling (pest + larastan)
+        working-directory: app
+        run: composer require --dev pestphp/pest pestphp/pest-plugin-laravel larastan/larastan --no-interaction --with-all-dependencies
+
+      - name: Prepare env
+        working-directory: app
         run: |
           cp .env.example .env
           php artisan key:generate
@@ -44,14 +71,19 @@ jobs:
           DB_HOST: 127.0.0.1
           REDIS_HOST: 127.0.0.1
 
-      - name: Pint (lint)
-        run: vendor/bin/pint --test
+      - name: Pint (our code)
+        working-directory: app
+        run: vendor/bin/pint --test app/Modules app/Http/Middleware app/Providers/ModuleServiceProvider.php tests/Feature tests/Pest.php
 
-      - name: PHPStan (static analysis)
+      - name: PHPStan (larastan, level 6)
+        working-directory: app
         run: vendor/bin/phpstan analyse --memory-limit=512M
 
-      - name: Pest (tests)
-        run: php artisan test
+      - name: Migrate + Pest
+        working-directory: app
+        run: |
+          php artisan migrate --seed --no-interaction
+          vendor/bin/pest
         env:
           DB_HOST: 127.0.0.1
           DB_DATABASE: smartlocal
