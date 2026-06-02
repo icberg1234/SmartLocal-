@@ -12,6 +12,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Tenant root. Intentionally NOT scoped by MallScope.
+ *
+ * @property int $id
+ * @property string $name
+ * @property string $type
+ * @property string|null $subdomain
+ * @property array<string,mixed>|null $settings
  */
 class Mall extends Model
 {
