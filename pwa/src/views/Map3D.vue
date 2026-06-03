@@ -1,190 +1,295 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
-import * as THREE from 'three'
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { getMapData, show3dMap } from '@mappedin/mappedin-js'
+import '@mappedin/mappedin-js/lib/index.css'
 
-// Clean flat-design shopping directory — find a shop fast on a phone.
-const SHOPS = [
-  { key: 'hm', name: 'H&M', slug: 'handm', color: '#e11d2a', cat: 'مد' },
-  { key: 'zara', name: 'Zara', slug: 'zara', color: '#111827', cat: 'مد' },
-  { key: 'nike', name: 'Nike', slug: 'nike', color: '#1f2937', cat: 'ورزشی' },
-  { key: 'adidas', name: 'Adidas', slug: 'adidas', color: '#0b1320', cat: 'ورزشی' },
-  { key: 'apple', name: 'Apple', slug: 'apple', color: '#6b7280', cat: 'دیجیتال' },
-  { key: 'samsung', name: 'Samsung', slug: 'samsung', color: '#1428a0', cat: 'دیجیتال' },
-  { key: 'starbucks', name: 'Starbucks', slug: 'starbucks', color: '#00704a', cat: 'کافه' },
-  { key: 'mcdonalds', name: "McDonald's", slug: 'mcdonalds', color: '#da291c', cat: 'فست‌فود' },
-  { key: 'xiaomi', name: 'Xiaomi', slug: 'xiaomi', color: '#ff6900', cat: 'دیجیتال' },
-  { key: 'lego', name: 'LEGO', slug: 'lego', color: '#e3000b', cat: 'اسباب‌بازی' },
-  { key: 'sony', name: 'Sony', slug: 'sony', color: '#1f2937', cat: 'دیجیتال' },
-  { key: 'lush', name: 'Lush', slug: 'lush', color: '#1a1a1a', cat: 'زیبایی' },
+// Premium indoor mall navigation on the Mappedin Web SDK (the engine real malls
+// like Westfield use): real 3D mall + search + first-person wayfinding.
+const CREDS = {
+  key: 'mik_yeBk0Vf0nNJtpesfu560e07e5',
+  secret: 'mis_2g9ST8ZcSFb5R9fPnsvYhrX3RyRwPtDGbMGweCYKEq385431022',
+  mapId: '65c0ff7430b94e3fabd5bb8c',
+}
+
+// Our brands (same keys as Home) aliased onto the venue's stores + brand colors,
+// so the storefronts read as real brands and "tap brand on Home → 3D route" works.
+const BRANDS = [
+  { key: 'hm', name: 'H&M', color: '#e50010' }, { key: 'zara', name: 'Zara', color: '#1b1b1b' },
+  { key: 'nike', name: 'Nike', color: '#111111' }, { key: 'adidas', name: 'adidas', color: '#0b0b0b' },
+  { key: 'apple', name: 'Apple Store', color: '#8e9296' }, { key: 'samsung', name: 'Samsung', color: '#1428a0' },
+  { key: 'starbucks', name: 'Starbucks', color: '#00704a' }, { key: 'mcdonalds', name: "McDonald's", color: '#d9a300' },
+  { key: 'xiaomi', name: 'Xiaomi', color: '#ff6900' }, { key: 'lego', name: 'LEGO', color: '#d4122a' },
+  { key: 'sony', name: 'Sony', color: '#0a0a0a' }, { key: 'lush', name: 'Lush', color: '#1b5e20' },
 ]
-const COLS = [-20, -12, -4, 4, 12, 20]
-SHOPS.forEach((s, i) => { const c = i % 6, r = Math.floor(i / 6); s.x = COLS[c]; s.z = r === 0 ? -7 : 7; s.face = r === 0 ? 1 : -1 })
-const ENTRANCE = new THREE.Vector3(-27, 0, 0)
 
-const canvasWrap = ref(null)
-const q = ref('')
-const dest = ref(null)
-const routeQ = useRoute()
-const filtered = computed(() => { const t = q.value.trim().toLowerCase(); return t ? SHOPS.filter(s => s.name.toLowerCase().includes(t) || s.cat.includes(t)) : SHOPS })
+const route = useRoute()
+const mapEl = ref(null)
+const status = ref('در حال بارگذاریِ تجربهٔ سه‌بعدی…')
+const query = ref('')
+const dest = ref('')
+const distM = ref(0)
+const floors = ref([])
+const currentFloorId = ref('')
+const mode = ref('overview')   // 'overview' | 'first'
+const navigating = ref(false)
 
-let renderer, scene, camera, controls, raf
-let routeGroup, pinGroup, camTarget = null, tBounce = 0
+let mapView = null, mapData = null, startSpace = null, destSpace = null
+let pulseTimer = null
+const keyToSpace = {}
+let namedSpaces = []
 
-function roundRect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath() }
-function signTexture(s) {
-  const c = document.createElement('canvas'); c.width = 256; c.height = 128
-  const ctx = c.getContext('2d'); const tex = new THREE.CanvasTexture(c); tex.anisotropy = 8
-  const draw = (img) => {
-    ctx.clearRect(0, 0, 256, 128); ctx.fillStyle = '#fff'; roundRect(ctx, 6, 6, 244, 116, 20); ctx.fill()
-    ctx.fillStyle = s.color; ctx.textAlign = 'center'
-    if (img) { ctx.drawImage(img, 100, 12, 56, 56); ctx.font = 'bold 26px Vazirmatn,sans-serif'; ctx.fillText(s.name, 128, 104) }
-    else { ctx.font = 'bold 30px Vazirmatn,sans-serif'; ctx.textBaseline = 'middle'; ctx.fillText(s.name, 128, 64) }
-    tex.needsUpdate = true
-  }
-  draw(null)
-  if (s.slug) { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => draw(im); im.src = `https://cdn.simpleicons.org/${s.slug}/${s.color.replace('#', '')}` }
-  return tex
-}
-function skyTex() {
-  const c = document.createElement('canvas'); c.width = 8; c.height = 256; const x = c.getContext('2d')
-  const g = x.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, '#dbe4f2'); g.addColorStop(0.55, '#eef0ef'); g.addColorStop(1, '#f5efe4')
-  x.fillStyle = g; x.fillRect(0, 0, 8, 256); return new THREE.CanvasTexture(c)
-}
-
-function buildMall() {
-  const g = new THREE.Group()
-  const floorMat = new THREE.MeshStandardMaterial({ color: 0xefe9dd, roughness: 0.96 })
-  const aisleMat = new THREE.MeshStandardMaterial({ color: 0xe4ddcb, roughness: 0.9 })
-  const blockMat = new THREE.MeshStandardMaterial({ color: 0xf7f4ee, roughness: 0.85 })
-  const ledMat = new THREE.MeshStandardMaterial({ color: 0xffd98a, emissive: 0xffc25a, emissiveIntensity: 0.9 })
-  const floor = new THREE.Mesh(new THREE.BoxGeometry(64, 0.4, 26), floorMat); floor.position.y = -0.2; floor.receiveShadow = true; g.add(floor)
-  const aisle = new THREE.Mesh(new THREE.BoxGeometry(60, 0.42, 6), aisleMat); aisle.position.set(0, -0.18, 0); aisle.receiveShadow = true; g.add(aisle)
-  const led = new THREE.Mesh(new THREE.BoxGeometry(58, 0.05, 0.3), ledMat); led.position.set(0, 0.06, 0); g.add(led)
-  for (const s of SHOPS) {
-    const block = new THREE.Mesh(new THREE.BoxGeometry(7, 3.6, 6), blockMat)
-    block.position.set(s.x, 1.8, s.z); block.castShadow = true; block.receiveShadow = true; g.add(block)
-    const frontZ = s.z + s.face * 3
-    const awning = new THREE.Mesh(new THREE.BoxGeometry(7, 0.5, 0.7), new THREE.MeshStandardMaterial({ color: new THREE.Color(s.color), roughness: 0.55 }))
-    awning.position.set(s.x, 3.5, frontZ); g.add(awning)
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 2.2), new THREE.MeshBasicMaterial({ map: signTexture(s), transparent: true }))
-    sign.position.set(s.x, 2.2, frontZ + s.face * 0.06); if (s.face < 0) sign.rotation.y = Math.PI; g.add(sign)
-    s.pos = new THREE.Vector3(s.x, 0, frontZ + s.face * 0.5)
-  }
-  // entrance arch + you-are-here
-  const arch = new THREE.Mesh(new THREE.TorusGeometry(3, 0.4, 12, 24, Math.PI), new THREE.MeshStandardMaterial({ color: 0x6366f1, roughness: 0.4, metalness: 0.3 }))
-  arch.position.set(ENTRANCE.x, 0, 0); arch.rotation.y = Math.PI / 2; g.add(arch)
-  scene.add(g)
-}
-
-function youHere() {
-  const grp = new THREE.Group()
-  const ring = new THREE.Mesh(new THREE.RingGeometry(1, 1.4, 32), new THREE.MeshBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.85, side: THREE.DoubleSide }))
-  ring.rotation.x = -Math.PI / 2; ring.position.set(ENTRANCE.x, 0.1, 0); grp.add(ring)
-  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), new THREE.MeshStandardMaterial({ color: 0x22d3ee, emissive: 0x06b6d4, emissiveIntensity: 0.7 }))
-  dot.position.set(ENTRANCE.x, 0.8, 0); grp.add(dot)
-  scene.add(grp)
-}
-
-function navigateTo(shop) {
-  dest.value = shop
-  if (routeGroup) { scene.remove(routeGroup); routeGroup.traverse(o => { o.geometry?.dispose?.(); o.material?.dispose?.() }) }
-  routeGroup = new THREE.Group()
-  const pts = [ENTRANCE.clone().setY(0.25), new THREE.Vector3(shop.x, 0.25, 0), new THREE.Vector3(shop.x, 0.25, shop.pos.z)]
-  const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal', 0.1)
-  routeGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 80, 0.28, 10, false),
-    new THREE.MeshStandardMaterial({ color: 0x6d28d9, emissive: 0x7c3aed, emissiveIntensity: 1.4, transparent: true, opacity: 0.95 })))
-  const am = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xc4b5fd, emissiveIntensity: 1.2 })
-  for (let i = 1; i < 10; i++) { const u = i / 10, p = curve.getPointAt(u), tg = curve.getTangentAt(u).normalize(); const a = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.9, 10), am); a.position.copy(p); a.position.y = 0.5; a.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tg); routeGroup.add(a) }
-  scene.add(routeGroup)
-  // bouncing destination pin
-  if (pinGroup) scene.remove(pinGroup)
-  pinGroup = new THREE.Group()
-  const pin = new THREE.Mesh(new THREE.ConeGeometry(0.9, 2.2, 18), new THREE.MeshStandardMaterial({ color: new THREE.Color(shop.color), emissive: new THREE.Color(shop.color), emissiveIntensity: 0.5 }))
-  pin.rotation.x = Math.PI; pin.position.set(shop.x, 6, shop.pos.z); pinGroup.add(pin); scene.add(pinGroup)
-  // ease camera toward the shop
-  camTarget = { pos: new THREE.Vector3(shop.x, 13, shop.face * 13), look: new THREE.Vector3(shop.x, 2.5, shop.z) }
-  controls.autoRotate = false
-}
-function overview() {
-  dest.value = null
-  if (routeGroup) { scene.remove(routeGroup); routeGroup = null }
-  if (pinGroup) { scene.remove(pinGroup); pinGroup = null }
-  camTarget = { pos: new THREE.Vector3(4, 46, 36), look: new THREE.Vector3(0, 0, 0) }
-}
-function onSearchEnter() { if (filtered.value.length) navigateTo(filtered.value[0]) }
-
-onMounted(() => {
-  const wrap = canvasWrap.value, w = wrap.clientWidth, h = wrap.clientHeight
-  scene = new THREE.Scene(); scene.background = skyTex(); scene.fog = new THREE.Fog(0xe9e6dc, 90, 170)
-  camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 400); camera.position.set(4, 46, 36)
-  renderer = new THREE.WebGLRenderer({ antialias: true })
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(w, h)
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap
-  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0
-  wrap.appendChild(renderer.domElement)
-  controls = new OrbitControls(camera, renderer.domElement)
-  controls.enableDamping = true; controls.target.set(0, 0, 0); controls.maxPolarAngle = Math.PI / 2.3; controls.minDistance = 18; controls.maxDistance = 95
-  scene.add(new THREE.HemisphereLight(0xfdfdff, 0xcbc2af, 1.0))
-  const dir = new THREE.DirectionalLight(0xfff2dc, 1.7); dir.position.set(18, 38, 16); dir.castShadow = true
-  dir.shadow.mapSize.set(2048, 2048); Object.assign(dir.shadow.camera, { left: -40, right: 40, top: 26, bottom: -26, far: 120 }); dir.shadow.bias = -0.0004
-  scene.add(dir)
-  buildMall(); youHere()
-  const qy = routeQ.query.store
-  if (qy) { const s = SHOPS.find(x => x.key === qy); if (s) navigateTo(s) }
-
-  const loop = () => {
-    raf = requestAnimationFrame(loop)
-    tBounce += 0.05
-    if (pinGroup) pinGroup.position.y = Math.abs(Math.sin(tBounce)) * 1.2
-    if (camTarget) {
-      camera.position.lerp(camTarget.pos, 0.06); controls.target.lerp(camTarget.look, 0.06)
-      if (camera.position.distanceTo(camTarget.pos) < 0.6) camTarget = null
-    }
-    controls.update(); renderer.render(scene, camera)
-  }
-  loop()
-  window.addEventListener('resize', onResize)
+const etaMin = computed(() => Math.max(1, Math.round((distM.value / 1.33) / 60)))
+const fa = (n) => Number(n || 0).toLocaleString('fa-IR')
+const results = computed(() => {
+  const q = query.value.trim().toLowerCase()
+  if (!q) return []
+  return namedSpaces.filter(s => (s.__label || s.name || '').toLowerCase().includes(q)).slice(0, 8)
 })
-function onResize() { if (!renderer || !canvasWrap.value) return; const w = canvasWrap.value.clientWidth, h = canvasWrap.value.clientHeight; camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h) }
-onBeforeUnmount(() => { cancelAnimationFrame(raf); window.removeEventListener('resize', onResize); controls?.dispose?.(); renderer?.dispose?.(); if (renderer?.domElement && canvasWrap.value?.contains(renderer.domElement)) canvasWrap.value.removeChild(renderer.domElement) })
+
+function bearingDeg(a, b) {
+  try {
+    const toR = d => d * Math.PI / 180, toD = r => r * 180 / Math.PI
+    const dLon = toR(b.longitude - a.longitude)
+    const y = Math.sin(dLon) * Math.cos(toR(b.latitude))
+    const x = Math.cos(toR(a.latitude)) * Math.sin(toR(b.latitude)) -
+      Math.sin(toR(a.latitude)) * Math.cos(toR(b.latitude)) * Math.cos(dLon)
+    return (toD(Math.atan2(y, x)) + 360) % 360
+  } catch (e) { return 0 }
+}
+
+function setFloor(id) { try { mapView.setFloor(id); currentFloorId.value = id } catch (e) { /* */ } }
+
+function stopPulse() {
+  if (pulseTimer) { clearInterval(pulseTimer); pulseTimer = null }
+  if (destSpace) { try { mapView.updateState(destSpace, { color: destSpace.__brandColor || undefined }) } catch (e) { /* */ } }
+}
+function pulse(space) {
+  stopPulse()
+  destSpace = space
+  let on = false
+  pulseTimer = setInterval(() => {
+    on = !on
+    try { mapView.updateState(space, { color: on ? '#22d3ee' : '#f59e0b' }) } catch (e) { /* */ }
+  }, 650)
+}
+
+async function enterFirstPerson() {
+  if (!mapView || !startSpace || !destSpace) return
+  mode.value = 'first'
+  try {
+    // Mappedin clamps pitch to ~69°, so this is the most immersive ("eye-level-ish") view it allows.
+    await mapView.Camera.animateTo(
+      { center: startSpace.center, zoomLevel: 21.5, pitch: 68, bearing: bearingDeg(startSpace.center, destSpace.center) },
+      { duration: 1900 },
+    )
+  } catch (e) { /* */ }
+}
+async function enterOverview() {
+  if (!mapView) return
+  mode.value = 'overview'
+  try {
+    const t = destSpace ? [startSpace, destSpace] : namedSpaces
+    await mapView.Camera.focusOn(t, { pitch: 48, duration: 1300 })
+  } catch (e) { /* */ }
+}
+
+async function navigateTo(space, { fly = true } = {}) {
+  if (!space || !mapView) return
+  dest.value = space.__label || space.name || 'مقصد'
+  query.value = ''
+  navigating.value = true
+  try { if (space.floor?.id) setFloor(space.floor.id) } catch (e) { /* */ }
+  try {
+    const dirs = await mapData.getDirections(startSpace, space)
+    try { mapView.Navigation.clear() } catch (e) { /* */ }
+    if (dirs) {
+      await mapView.Navigation.draw(dirs, {
+        pathOptions: {
+          color: '#22d3ee', accentColor: '#ffffff', width: '13px',
+          displayArrowsOnPath: true, animateArrowsOnPath: true,
+          showPulse: true, pulseIterations: 9999, drawDuration: 1300,
+        },
+      })
+      distM.value = Math.round(dirs.distance || 0)
+    } else { distM.value = 0 }
+  } catch (e) { distM.value = 0 }
+  pulse(space)
+  // glide straight into the immersive first-person walk-up (overview stays on the toggle)
+  if (fly) await enterFirstPerson()
+  else await enterOverview()
+}
+
+function clearRoute() {
+  dest.value = ''; distM.value = 0; navigating.value = false
+  stopPulse(); destSpace = null
+  try { mapView.Navigation.clear() } catch (e) { /* */ }
+  enterOverview()
+}
+
+async function setup() {
+  try {
+    mapData = await getMapData(CREDS)
+    mapView = await show3dMap(mapEl.value, mapData)
+
+    const spaces = mapData.getByType('space')
+    namedSpaces = spaces.filter(s => s.name)
+    namedSpaces.forEach((s, i) => {
+      const b = BRANDS[i]
+      s.__label = b ? b.name : s.name
+      if (b) {
+        s.__brandColor = b.color
+        keyToSpace[b.key] = s
+        try { mapView.updateState(s, { color: b.color }) } catch (e) { /* */ }
+      }
+      try { mapView.updateState(s, { interactive: true }) } catch (e) { /* */ }
+      try { mapView.Labels.add(s, s.__label) } catch (e) { /* */ }
+    })
+
+    try {
+      const fl = mapData.getByType('floor') || []
+      floors.value = fl.map(f => ({ id: f.id, name: f.name })).reverse()
+      currentFloorId.value = mapView.currentFloor?.id || (fl[0] && fl[0].id) || ''
+    } catch (e) { /* */ }
+
+    startSpace = namedSpaces[namedSpaces.length - 1] || spaces[0]
+    try {
+      mapView.Markers.add(startSpace, '<div class="yah">📍 شما اینجا</div>')
+    } catch (e) { /* */ }
+
+    mapView.on('click', (e) => { const s = e?.spaces?.[0]; if (s) navigateTo(s) })
+
+    status.value = ''
+
+    const key = route.query.store
+    if (key && keyToSpace[key]) setTimeout(() => navigateTo(keyToSpace[key]), 500)
+  } catch (e) {
+    status.value = 'خطا در بارگذاریِ نقشه: ' + (e?.message || String(e))
+  }
+}
+
+onMounted(setup)
+onBeforeUnmount(() => { stopPulse(); try { mapView?.destroy?.() } catch (e) { /* */ } })
 </script>
 
 <template>
   <section class="map">
-    <div class="hud">
-      <div class="hud-top">
-        <h2>راهنمای فروشگاه‌ها</h2>
-        <button class="src" @click="overview">نمای کلی</button>
+    <!-- search -->
+    <div class="search">
+      <div class="search-box">
+        <span class="si">🔍</span>
+        <input v-model="query" type="search" placeholder="جستجوی فروشگاه… (مثلاً Nike)" />
+        <button v-if="query" class="x" @click="query = ''">✕</button>
       </div>
-      <input class="search" v-model="q" @keyup.enter="onSearchEnter" placeholder="🔎 نامِ فروشگاه را بنویس…" />
-      <div v-if="dest" class="route-info">🧭 مسیر تا <b>{{ dest.name }}</b> — از ورودی مستقیم برو.</div>
+      <ul v-if="results.length" class="results">
+        <li v-for="s in results" :key="s.id" @click="navigateTo(s)">
+          <span class="dot" :style="{ background: s.__brandColor || '#6366f1' }"></span>{{ s.__label || s.name }}
+          <small v-if="s.floor">· طبقه {{ s.floor.name }}</small>
+        </li>
+      </ul>
     </div>
-    <div ref="canvasWrap" class="canvas-wrap"></div>
-    <div class="picker">
-      <button v-for="s in filtered" :key="s.key" class="chip" :class="{ on: dest && dest.key === s.key }" @click="navigateTo(s)">
-        <img :src="`https://cdn.simpleicons.org/${s.slug}`" :alt="s.name" @error="(e) => (e.target.style.display = 'none')" />
-        <span>{{ s.name }}</span>
-      </button>
-      <div v-if="!filtered.length" class="noresult">فروشگاهی با این نام نیست.</div>
+
+    <!-- floor selector -->
+    <div v-if="floors.length > 1" class="floors">
+      <button v-for="f in floors" :key="f.id" :class="{ on: f.id === currentFloorId }" @click="setFloor(f.id)">{{ f.name }}</button>
+    </div>
+
+    <!-- 3D canvas -->
+    <div ref="mapEl" class="canvas-wrap"></div>
+
+    <!-- loading -->
+    <div v-if="status" class="loading"><span class="spin"></span>{{ status }}</div>
+
+    <!-- premium route card -->
+    <transition name="rise">
+      <div v-if="!status && navigating" class="route-card">
+        <div class="rc-head">
+          <div class="rc-dest">
+            <span class="pin" :style="{ background: destSpace?.__brandColor || '#4f46e5' }"></span>
+            <div>
+              <div class="rc-name">{{ dest }}</div>
+              <div class="rc-sub">از موقعیتِ شما</div>
+            </div>
+          </div>
+          <button class="rc-close" @click="clearRoute">✕</button>
+        </div>
+        <div class="rc-metrics">
+          <div class="m"><span class="mv">{{ fa(etaMin) }}<small> دقیقه</small></span><span class="ml">زمانِ تقریبی</span></div>
+          <div class="sep"></div>
+          <div class="m"><span class="mv">{{ fa(distM) }}<small> متر</small></span><span class="ml">فاصله</span></div>
+          <div class="sep"></div>
+          <div class="m"><span class="mv">🚶</span><span class="ml">پیاده</span></div>
+        </div>
+        <div class="rc-actions">
+          <div class="seg">
+            <button :class="{ on: mode === 'overview' }" @click="enterOverview">نمای کلی</button>
+            <button :class="{ on: mode === 'first' }" @click="enterFirstPerson">اول‌شخص</button>
+          </div>
+          <button class="start" @click="enterFirstPerson">▶ شروع مسیریابی</button>
+        </div>
+      </div>
+    </transition>
+
+    <!-- idle hint -->
+    <div v-if="!status && !navigating" class="hint">
+      🧭 فروشگاهی را جستجو کن یا روی نقشه لمس کن تا مسیرِ سه‌بعدی از «شما اینجا» کشیده شود.
     </div>
   </section>
 </template>
 
 <style scoped>
-.map { position: fixed; top: 56px; inset-inline: 0; bottom: 0; }
-.canvas-wrap { position: absolute; inset: 0; }
-.hud { position: absolute; top: 14px; inset-inline: 14px; z-index: 5; max-width: 560px; margin: 0 auto; background: rgba(255,255,255,.86); backdrop-filter: blur(8px); border: 1px solid rgba(0,0,0,.06); border-radius: 16px; padding: 12px 14px; box-shadow: 0 6px 20px rgba(0,0,0,.1); }
-.hud-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
-.hud h2 { font-size: 16px; margin: 0; color: var(--text); }
-.src { font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; border: 0; background: var(--primary-50); color: var(--primary); padding: 7px 12px; border-radius: 999px; }
-.search { width: 100%; box-sizing: border-box; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 12px; font: inherit; }
-.search:focus { outline: 0; border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-50); }
-.route-info { font-size: 13.5px; margin-top: 8px; color: var(--text); } .route-info b { color: var(--primary); }
-.picker { position: absolute; bottom: 92px; inset-inline: 0; z-index: 5; display: flex; gap: 8px; overflow-x: auto; padding: 0 14px 4px; }
-.chip { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 74px; height: 64px; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 14px; background: #fff; cursor: pointer; font: inherit; font-size: 11px; font-weight: 700; color: var(--text); }
-.chip.on { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-50); }
-.chip img { width: 24px; height: 24px; object-fit: contain; }
-.noresult { align-self: center; color: #fff; background: rgba(0,0,0,.5); padding: 8px 14px; border-radius: 12px; font-size: 13px; }
+.map { position: fixed; top: 56px; inset-inline: 0; bottom: 0; overflow: hidden; }
+.canvas-wrap { position: absolute; inset: 0; background: #eef0f5; }
+
+/* search */
+.search { position: absolute; top: 12px; inset-inline: 12px; z-index: 6; max-width: 520px; margin: 0 auto; }
+.search-box { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.92); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.6); border-radius: 16px; padding: 11px 15px; box-shadow: 0 10px 30px rgba(20,24,60,.16); }
+.search-box .si { font-size: 15px; opacity: .65; }
+.search-box input { flex: 1; border: 0; outline: 0; font: inherit; font-size: 15px; background: transparent; color: #14163c; }
+.search-box .x { border: 0; background: #eef0f5; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; color: #555; }
+.results { list-style: none; margin: 8px 0 0; padding: 6px; background: rgba(255,255,255,.97); backdrop-filter: blur(12px); border-radius: 16px; box-shadow: 0 16px 40px rgba(20,24,60,.2); max-height: 44vh; overflow: auto; }
+.results li { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 11px; cursor: pointer; font-size: 14.5px; color: #14163c; }
+.results li:active, .results li:hover { background: #f1f3fb; }
+.results li .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
+.results li small { color: #8a8fb0; margin-inline-start: auto; font-size: 12px; }
+
+/* floor selector */
+.floors { position: absolute; top: 46%; transform: translateY(-50%); inset-inline-end: 12px; z-index: 6; display: flex; flex-direction: column; gap: 6px; background: rgba(255,255,255,.92); backdrop-filter: blur(10px); padding: 6px; border-radius: 16px; box-shadow: 0 10px 26px rgba(20,24,60,.18); }
+.floors button { width: 42px; height: 42px; border: 0; background: transparent; border-radius: 12px; font: 700 14px Vazirmatn, sans-serif; color: #555; cursor: pointer; transition: .2s; }
+.floors button.on { background: #4f46e5; color: #fff; box-shadow: 0 6px 16px rgba(79,70,229,.4); }
+
+/* loading */
+.loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 12px; color: #4f46e5; font-size: 14px; background: #eef0f5; z-index: 4; }
+.spin { width: 22px; height: 22px; border: 3px solid #c7cbe6; border-top-color: #4f46e5; border-radius: 50%; animation: sp 1s linear infinite; }
+@keyframes sp { to { transform: rotate(360deg); } }
+
+/* idle hint */
+.hint { position: absolute; bottom: 84px; inset-inline: 12px; z-index: 6; max-width: 520px; margin: 0 auto; background: rgba(255,255,255,.92); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.6); border-radius: 16px; padding: 13px 16px; color: #5b6080; font-size: 13px; box-shadow: 0 10px 30px rgba(20,24,60,.14); text-align: center; }
+
+/* premium glassmorphism route card */
+.route-card { position: absolute; bottom: 84px; inset-inline: 12px; z-index: 7; max-width: 520px; margin: 0 auto; background: rgba(17,19,46,.78); backdrop-filter: blur(18px) saturate(1.3); border: 1px solid rgba(255,255,255,.14); border-radius: 22px; padding: 16px 18px; box-shadow: 0 20px 50px rgba(8,10,30,.45); color: #fff; }
+.rc-head { display: flex; align-items: center; justify-content: space-between; }
+.rc-dest { display: flex; align-items: center; gap: 12px; }
+.rc-dest .pin { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 0 4px rgba(255,255,255,.12), 0 0 14px 2px currentColor; }
+.rc-name { font-size: 18px; font-weight: 800; letter-spacing: -.2px; }
+.rc-sub { font-size: 11.5px; color: rgba(255,255,255,.55); margin-top: 1px; }
+.rc-close { border: 0; background: rgba(255,255,255,.12); color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 13px; }
+.rc-metrics { display: flex; align-items: center; gap: 10px; margin: 14px 0; }
+.rc-metrics .m { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.rc-metrics .mv { font-size: 21px; font-weight: 800; color: #a5b4fc; line-height: 1; }
+.rc-metrics .mv small { font-size: 11px; font-weight: 600; color: rgba(255,255,255,.6); }
+.rc-metrics .ml { font-size: 11px; color: rgba(255,255,255,.55); }
+.rc-metrics .sep { width: 1px; height: 30px; background: rgba(255,255,255,.14); }
+.rc-actions { display: flex; align-items: center; gap: 10px; }
+.seg { display: flex; background: rgba(255,255,255,.1); border-radius: 12px; padding: 3px; }
+.seg button { border: 0; background: transparent; color: rgba(255,255,255,.7); font: 700 12.5px Vazirmatn, sans-serif; padding: 8px 12px; border-radius: 10px; cursor: pointer; transition: .2s; }
+.seg button.on { background: #fff; color: #14163c; }
+.start { flex: 1; border: 0; background: linear-gradient(135deg, #6366f1, #22d3ee); color: #fff; font: 800 14px Vazirmatn, sans-serif; padding: 12px; border-radius: 12px; cursor: pointer; box-shadow: 0 10px 24px rgba(34,211,238,.35); }
+.start:active { transform: translateY(1px); }
+
+.rise-enter-active, .rise-leave-active { transition: all .35s cubic-bezier(.2,.8,.2,1); }
+.rise-enter-from, .rise-leave-to { opacity: 0; transform: translateY(20px); }
+
+/* "you are here" marker (injected into SDK DOM — global) */
+:global(.yah) { background: #16a34a; color: #fff; font: 700 11px/1 Vazirmatn, sans-serif; padding: 7px 11px; border-radius: 999px; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
 </style>
