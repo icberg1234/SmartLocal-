@@ -3,8 +3,10 @@ import Landing from './views/Landing.vue'
 import Login from './views/Login.vue'
 import Home from './views/Home.vue'
 import MyQr from './views/MyQr.vue'
-import Map3D from './views/Map3D.vue'
 import Redeem from './views/Redeem.vue'
+
+// lazy-loaded: pulls in the large Mappedin 3D SDK only when /map is visited
+const Map3D = () => import('./views/Map3D.vue')
 import AdminDashboard from './views/admin/AdminDashboard.vue'
 import AdminSettings from './views/admin/AdminSettings.vue'
 import AdminPlans from './views/admin/AdminPlans.vue'

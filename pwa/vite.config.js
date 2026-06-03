@@ -14,6 +14,8 @@ export default defineConfig({
         vue(),
         VitePWA({
             registerType: 'autoUpdate',
+            // the Mappedin 3D SDK is a large chunk; allow it to be precached
+            workbox: { maximumFileSizeToCacheInBytes: 6 * 1024 * 1024 },
             manifest: {
                 name: 'SmartLocal',
                 short_name: 'SmartLocal',
